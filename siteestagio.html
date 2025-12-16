@@ -1,153 +1,220 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Aviso</title>
-  <style>
-    :root{
-      --bg1:#0f1020;
-      --bg2:#1b2a6b;
-      --card:#ffffff12;
-      --text:#ffffff;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disciplinas 2025.1</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f6f9;
+            color: #333;
+            padding: 20px;
+        }
 
-    *{ box-sizing:border-box; margin:0; padding:0; }
-    body{
-      min-height:100vh;
-      display:grid;
-      place-items:center;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      color: var(--text);
-      background: radial-gradient(1200px 700px at 20% 20%, #7c3aed55, transparent 60%),
-                  radial-gradient(1000px 650px at 80% 80%, #22c55e55, transparent 55%),
-                  linear-gradient(135deg, var(--bg1), var(--bg2));
-      overflow:hidden;
-      padding: 24px;
-    }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
 
-    /* Confetes no fundo */
-    .confetti{
-      position: fixed;
-      inset: 0;
-      pointer-events:none;
-      opacity: .55;
-      background-image:
-        radial-gradient(circle at 10% 20%, #f97316 0 4px, transparent 5px),
-        radial-gradient(circle at 30% 80%, #22c55e 0 4px, transparent 5px),
-        radial-gradient(circle at 70% 30%, #60a5fa 0 4px, transparent 5px),
-        radial-gradient(circle at 85% 60%, #f472b6 0 4px, transparent 5px),
-        radial-gradient(circle at 50% 50%, #facc15 0 4px, transparent 5px);
-      background-size: 180px 180px;
-      animation: drift 9s linear infinite;
-      filter: blur(.2px);
-    }
-    @keyframes drift{
-      from{ transform: translateY(-10px); }
-      to{ transform: translateY(10px); }
-    }
+        .table-container {
+            overflow-x: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
 
-    .card{
-      width: min(980px, 96vw);
-      background: var(--card);
-      border: 1px solid #ffffff25;
-      border-radius: 28px;
-      padding: clamp(26px, 5vw, 54px);
-      box-shadow: 0 20px 80px #00000055;
-      position: relative;
-      overflow:hidden;
-    }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1200px;
+        }
 
-    .glow{
-      position:absolute;
-      inset:-80px;
-      background: conic-gradient(from 180deg,
-        #22c55e55, #60a5fa55, #f472b655, #facc1555, #f9731655, #22c55e55);
-      filter: blur(40px);
-      opacity:.55;
-      animation: spin 10s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg);} }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
 
-    .content{
-      position: relative;
-      z-index: 2;
-      text-align:center;
-    }
+        thead {
+            background-color: #34495e;
+            color: white;
+        }
 
-    h1{
-      font-size: clamp(34px, 5vw, 72px);
-      line-height: 1.05;
-      font-weight: 900;
-      letter-spacing: -0.02em;
-      text-shadow: 0 8px 30px #00000060;
-      animation: pop 1.2s ease-in-out infinite alternate;
-    }
-    @keyframes pop{
-      from{ transform: translateY(0) scale(1); }
-      to{ transform: translateY(-6px) scale(1.02); }
-    }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
 
-    .sub{
-      margin-top: 18px;
-      font-size: clamp(18px, 2.2vw, 28px);
-      opacity: .95;
-    }
+        a {
+            color: #2980b9;
+            text-decoration: none;
+        }
 
-    .badge{
-      display:inline-flex;
-      gap:10px;
-      align-items:center;
-      margin-top: 28px;
-      padding: 12px 18px;
-      border-radius: 999px;
-      border: 1px solid #ffffff30;
-      background: #00000025;
-      font-size: clamp(14px, 1.7vw, 18px);
-      animation: float 2.8s ease-in-out infinite;
-    }
-    @keyframes float{
-      0%,100%{ transform: translateY(0); }
-      50%{ transform: translateY(-8px); }
-    }
+        a:hover {
+            text-decoration: underline;
+        }
 
-    .sparkle{
-      display:inline-block;
-      animation: twinkle 1.1s ease-in-out infinite alternate;
-    }
-    @keyframes twinkle{
-      from{ transform: rotate(-8deg) scale(1); filter: drop-shadow(0 0 0 transparent); }
-      to{ transform: rotate(8deg) scale(1.15); filter: drop-shadow(0 0 10px #facc15aa); }
-    }
+        .revisao-container {
+            margin-top: 40px;
+            background-color: #ffeaa7;
+            border-left: 6px solid #e17055;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
 
-    /* Responsivo */
-    @media (max-width: 480px){
-      .badge{ padding: 10px 14px; }
-    }
-  </style>
+        .revisao-container h2 {
+            margin-top: 0;
+            color: #d63031;
+        }
+
+        .revisao-container a {
+            color: #2d3436;
+            font-weight: bold;
+        }
+    </style>
 </head>
-
 <body>
-  <div class="confetti" aria-hidden="true"></div>
 
-  <div class="card">
-    <div class="glow" aria-hidden="true"></div>
+    <h1>Formulário: Entrega de documentação de estágio curricular- 2025.2 (Links dos Professores/Secretarias)</h1>
 
-    <div class="content">
-      <h1>
-        Aguarde o período de revisão de notas! <span class="sparkle">✨</span>
-      </h1>
-
-      <p class="sub">
-        Caso precise de algo, escreva para <strong>Ivaneide</strong> 💬
-      </p>
-
-      <div class="badge">
-        <span class="sparkle">🎉</span>
-        <span></span>
-        <span class="sparkle">📚</span>
-      </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Ano / Turno</th>
+                    <th>Disciplina</th>
+                    <th>Nome da Disciplina</th>
+                    <th>Professora</th>
+                    <th>Link dos Alunos</th>
+                    <th>Link Professores/Secretaria</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>2025.2 - Matutino</td>
+                    <td>Práticas Educacionais na 1ª Infância: bebês e crianças até 03 anos </td>
+                    <td>Práticas Educacionais na 1ª Infância</td>
+                    <td>Profa. Dra. Waldete Tristão</td>
+                    <td><a href="https://forms.office.com/r/XUf8DtcSTh" target="_blank">Formulário</a></td>
+                    <td><a href="https://forms.office.com/Pages/DesignPageV2.aspx?subpage=design&FormId=0CttMUH8HkaTcUQaaIj3mW2Phy292NNHtILZbizO0k5UQ0dLV1dWN09JUDVPTjdYVlRKM0RISFFJWS4u&Token=78cb834875484157bb7e34bb90a71f49" target="_blank">Acesso Interno</a></td>
+                </tr>
+                <tr>
+                    <td>2025.2 - Matutino</td>
+                    <td>Práticas para o Ensino da Língua Portuguesa nos Anos Iniciais do Ensino Fundamental </td>
+                    <td>Práticas para o Ensino da Língua Portuguesa</td>
+                    <td> Profa. Ma. Cris Mori</td>
+                    <td><a href="https://forms.office.com/r/8VNVpHzgzq" target="_blank">Formulário</a></td>
+                    <td><a href="https://forms.office.com/Pages/DesignPageV2.aspx?subpage=design&FormId=0CttMUH8HkaTcUQaaIj3mW2Phy292NNHtILZbizO0k5UMVk0R0JMMkM4M0E3TUpTODk1Mk5MVDlVNi4u&Token=7c9711f94a5540e2a0d3a122dbfd689e" target="_blank">Acesso Interno</a></td>
+                </tr>
+                <tr>
+                    <td>2025.2 - Matutino</td>
+                    <td>Perspectivas e Paradigmas atuais para a formação integral do educador </td>
+                    <td>Perspectivas e Paradigmas atuais para a formação integral do educador </td>
+                    <td> Profa. Dra. Elizabeth Sanada Gurgueira</td>
+                    <td><a href="https://forms.office.com/r/LSJdRP7u1h" target="_blank">Formulário</a></td>
+                    <td><a href="https://forms.office.com/Pages/DesignPageV2.aspx?subpage=design&FormId=0CttMUH8HkaTcUQaaIj3mW2Phy292NNHtILZbizO0k5UOVkwVUNJTUhCWldVSTFHN0xSUEo5WUdWOS4u&Token=804fcde11796489e9022cf7952d4454f" target="_blank">Acesso Interno</a></td>
+                </tr>
+                <tr>
+                    <td>2025.2 - Matutino</td>
+                    <td>Oficio de Professor e Desenvolvimento Profissional - TCC III </td>
+                    <td>Oficio de Professor e Desenvolvimento Profissional - TCC III </td>
+                    <td> Profa.Dra. Alcione Piva e Profa. Ma. Edna Oliveira</td>
+                    <td><a href="https://forms.office.com/Pages/ResponsePage.aspx?id=0CttMUH8HkaTcUQaaIj3mW2Phy292NNHtILZbizO0k5UMlNGMzRTUjRYNzk0NzlRTUxHRDFDQ1NFSy4u" target="_blank">Formulário</a></td>
+                    <td><a href="https://forms.office.com/Pages/DesignPageV2.aspx?subpage=design&FormId=0CttMUH8HkaTcUQaaIj3mW2Phy292NNHtILZbizO0k5UMlNGMzRTUjRYNzk0NzlRTUxHRDFDQ1NFSy4u&Token=82c8a72e8ca64ffc853bd83f0cac9b97" target="_blank">Acesso Interno</a></td>
+                </tr>
+<tr>
+    <td>2025.2 - Matutino</td>
+    <td> Matriz 2017 (11081 - Coordenação Pedagógica)- Matutino </td>
+    <td> Matriz 2017 (11081 - Coordenação Pedagógica)- Matutino </td>
+    <td> Profa. Sofia </td>
+    <td><a href="https://forms.office.com/r/jMAZjVEPAn" target="_blank">Formulário</a></td>
+    <td><a href="https://forms.office.com/Pages/DesignPageV2.aspx?subpage=design&FormId=0CttMUH8HkaTcUQaaIj3mW2Phy292NNHtILZbizO0k5UODRTTEJEQUhNUlRZRzNTV0g5Q1E4ODdYNy4u&Token=cdf12430aa21456485c88c4c0a9ce8c8" target="_blank">Acesso Interno</a></td>
+</tr>
+<tr>
+    <td>2025.2 - Matutino</td>
+    <td> Função do Diretor e Métodos de Gestão Institucional - 25 horas de estágio </td>
+    <td> Função do Diretor e Métodos de Gestão Institucional - 25 horas de estágio </td>
+    <td> Profa. Sofia </td>
+    <td><a href="https://forms.office.com/r/GrzqySTw6U" target="_blank">Formulário</a></td>
+    <td><a href="https://forms.office.com/Pages/DesignPageV2.aspx?subpage=design&FormId=0CttMUH8HkaTcUQaaIj3mW2Phy292NNHtILZbizO0k5UQkw1U0tWQlhJTTdMMlVHOE9CTTJRUDc4OC4u&Token=872ee5a6c2ae4808a3c3726865b02ae0" target="_blank">Acesso Interno</a></td>
+    
+</tr>
+<tr>
+    <td>2025.2 - Matutino</td>
+    <td> Práticas Educacionais na 1ª. Infância com crianças de 4 e 5 anos </td>
+    <td> Práticas Educacionais na 1ª. Infância com crianças de 4 e 5 anos </td>
+    <td> Profa. Elizabeth Sanada </td>
+    <td><a href="https://forms.office.com/r/dCt3zVsL5z" target="_blank">Formulário</a></td>
+    <td><a href="https://forms.office.com/Pages/DesignPageV2.aspx?subpage=design&FormId=0CttMUH8HkaTcUQaaIj3mW2Phy292NNHtILZbizO0k5UQjVTSFdHMlJSODdVQ1I0R0xROERTTzUwMi4u&Token=5d007191bf354ab9ad51cd1be965e6b9" target="_blank">Acesso Interno</a></td>
+    
+</tr>
+<tr>
+    <td>2025.2 - Noturno</td>
+    <td> Matriz 2017 (11081 - Coordenação Pedagógica)-  </td>
+    <td> Matriz 2017 (11081 - Coordenação Pedagógica)-  </td>
+    <td> Profa. Dra Waldete </td>
+    <td><a href="https://forms.office.com/r/V19SccgpCa" target="_blank">Formulário</a></td>
+    <td><a href="https://forms.office.com/Pages/DesignPageV2.aspx?subpage=design&FormId=0CttMUH8HkaTcUQaaIj3mW2Phy292NNHtILZbizO0k5UQThXN0YwSDZaVkxFWU5KTVZWRUdFVUVYMi4u&Token=92248a460241485b999cd37066a536a6" target="_blank">Acesso Interno</a></td>
+</tr>
+                <tr>
+                    <td>2025.2 - Noturno</td>
+                    <td>Práticas Educacionais na 1ª Infância: bebês e crianças até 03 anos </td>
+                    <td>Práticas Educacionais na 1ª Infância: bebês e crianças até 03 anos </td>
+                    <td>Profa. Ma. Viviane Anselmo</td>
+                    <td><a href="https://forms.office.com/r/cdtwp1PXyk" target="_blank">Formulário</a></td>
+                    <td><a href="https://forms.office.com/Pages/DesignPageV2.aspx?subpage=design&FormId=0CttMUH8HkaTcUQaaIj3mW2Phy292NNHtILZbizO0k5URE9PNlJPVFNNT0RRS0g4NzlIR0NNRUQxRS4u&Token=99723c69130e426fa013dd54958e13f0" target="_blank">Acesso Interno</a></td>
+                </tr>
+                                <tr>
+                    <td>2025.2 - Noturno</td>
+                    <td>Práticas para o Ensino da Língua Portuguesa nos Anos Iniciais do Ensino Fundamental </td>
+                    <td>Práticas para o Ensino da Língua Portuguesa nos Anos Iniciais do Ensino Fundamental </td>
+                    <td>Ma. Cristiane Mori</td>
+                    <td><a href="https://forms.office.com/r/PHnd9n9WvC" target="_blank">Formulário</a></td>
+                    <td><a href="https://forms.office.com/Pages/DesignPageV2.aspx?subpage=design&FormId=0CttMUH8HkaTcUQaaIj3mW2Phy292NNHtILZbizO0k5UMFU2N0c3Tlo5UktSQ0VWSTRXRVlSNTVHWi4u&Token=34c94e00fcd1490789fa3714215510ef" target="_blank">Acesso Interno</a></td>
+                </tr>
+                <tr>
+                    <td>2025.2 - Noturno</td>
+                    <td>Perspectivas e Paradigmas atuais para a formação integral do educador </td>
+                    <td>Perspectivas e Paradigmas atuais para a formação integral do educador </td>
+                    <td> Profa. Dra. Elizabeth Sanada Gurgueira</td>
+                    <td><a href="https://forms.office.com/r/WznAtFxKVY" target="_blank">Formulário</a></td>
+                    <td><a href="https://forms.office.com/Pages/DesignPageV2.aspx?subpage=design&FormId=0CttMUH8HkaTcUQaaIj3mW2Phy292NNHtILZbizO0k5URTIySFYyUDdSM0RFTkkwUDVUMUZESEVMVy4u&Token=58211033e77a494c9e82b39359f8ada6" target="_blank">Acesso Interno</a></td>
+                </tr>
+                <tr>
+                    <td>2025.2 - Noturno</td>
+                    <td>Oficio de Professor e Desenvolvimento Profissional - TCC III </td>
+                    <td>Oficio de Professor e Desenvolvimento Profissional - TCC III </td>
+                    <td> Profa.Dra. Alcione Piva </td>
+                    <td><a href="https://forms.office.com/r/NVLtp08LRf" target="_blank">Formulário</a></td>
+                    <td><a href="https://forms.office.com/Pages/DesignPageV2.aspx?subpage=design&FormId=0CttMUH8HkaTcUQaaIj3mW2Phy292NNHtILZbizO0k5UOERNUkpaR0ZNSU9HMzhPMUdCU1pZTEZIUi4u&Token=9118c5fdd2b34198b7b7ab8441501106" target="_blank">Acesso Interno</a></td>
+                </tr>
+                
+                
+               
+            </tbody>
+        </table>
     </div>
-  </div>
+
+    <div class="revisao-container">
+        <h2>📌 Revisão de Notas</h2>
+        <p><strong>Alunos:</strong> Caso desejem solicitar revisão de notas, preencham o formulário abaixo:</p>
+        <p><a href="https://forms.office.com/r/zBXFNEtp6w" target="_blank">Formulário de Revisão para Alunos</a></p>
+        <p><strong>Secretaria e Professores:</strong> Utilizem o formulário interno a seguir para tratar de revisões:</p>
+        <p><a href="https://forms.office.com/Pages/DesignPageV2.aspx?subpage=design&FormId=0CttMUH8HkaTcUQaaIj3mW2Phy292NNHtILZbizO0k5UMEtUQU9OSjlPQVJLWDI3U0FIUlQ2WDZZUS4u&Token=39d6dbba9068487aa99f2ab405aada7d" target="_blank">Formulário Interno para Secretaria e Professores</a></p>
+    </div>
+
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+

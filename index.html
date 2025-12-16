@@ -2,152 +2,208 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Aviso</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Disciplinas 2025.1 - Alunos</title>
   <style>
-    :root{
-      --bg1:#0f1020;
-      --bg2:#1b2a6b;
-      --card:#ffffff12;
-      --text:#ffffff;
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f6f9;
+      color: #333;
+      padding: 20px;
     }
 
-    *{ box-sizing:border-box; margin:0; padding:0; }
-    body{
-      min-height:100vh;
-      display:grid;
-      place-items:center;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      color: var(--text);
-      background: radial-gradient(1200px 700px at 20% 20%, #7c3aed55, transparent 60%),
-                  radial-gradient(1000px 650px at 80% 80%, #22c55e55, transparent 55%),
-                  linear-gradient(135deg, var(--bg1), var(--bg2));
-      overflow:hidden;
-      padding: 24px;
+    h1 {
+      text-align: center;
+      color: #2c3e50;
     }
 
-    /* Confetes no fundo */
-    .confetti{
-      position: fixed;
-      inset: 0;
-      pointer-events:none;
-      opacity: .55;
-      background-image:
-        radial-gradient(circle at 10% 20%, #f97316 0 4px, transparent 5px),
-        radial-gradient(circle at 30% 80%, #22c55e 0 4px, transparent 5px),
-        radial-gradient(circle at 70% 30%, #60a5fa 0 4px, transparent 5px),
-        radial-gradient(circle at 85% 60%, #f472b6 0 4px, transparent 5px),
-        radial-gradient(circle at 50% 50%, #facc15 0 4px, transparent 5px);
-      background-size: 180px 180px;
-      animation: drift 9s linear infinite;
-      filter: blur(.2px);
-    }
-    @keyframes drift{
-      from{ transform: translateY(-10px); }
-      to{ transform: translateY(10px); }
+    .table-container {
+      overflow-x: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
 
-    .card{
-      width: min(980px, 96vw);
-      background: var(--card);
-      border: 1px solid #ffffff25;
-      border-radius: 28px;
-      padding: clamp(26px, 5vw, 54px);
-      box-shadow: 0 20px 80px #00000055;
-      position: relative;
-      overflow:hidden;
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1000px;
     }
 
-    .glow{
-      position:absolute;
-      inset:-80px;
-      background: conic-gradient(from 180deg,
-        #22c55e55, #60a5fa55, #f472b655, #facc1555, #f9731655, #22c55e55);
-      filter: blur(40px);
-      opacity:.55;
-      animation: spin 10s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg);} }
-
-    .content{
-      position: relative;
-      z-index: 2;
-      text-align:center;
+    th, td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
     }
 
-    h1{
-      font-size: clamp(34px, 5vw, 72px);
-      line-height: 1.05;
-      font-weight: 900;
-      letter-spacing: -0.02em;
-      text-shadow: 0 8px 30px #00000060;
-      animation: pop 1.2s ease-in-out infinite alternate;
-    }
-    @keyframes pop{
-      from{ transform: translateY(0) scale(1); }
-      to{ transform: translateY(-6px) scale(1.02); }
+    thead {
+      background-color: #34495e;
+      color: white;
     }
 
-    .sub{
-      margin-top: 18px;
-      font-size: clamp(18px, 2.2vw, 28px);
-      opacity: .95;
+    tr:hover {
+      background-color: #f1f1f1;
     }
 
-    .badge{
-      display:inline-flex;
-      gap:10px;
-      align-items:center;
-      margin-top: 28px;
-      padding: 12px 18px;
-      border-radius: 999px;
-      border: 1px solid #ffffff30;
-      background: #00000025;
-      font-size: clamp(14px, 1.7vw, 18px);
-      animation: float 2.8s ease-in-out infinite;
-    }
-    @keyframes float{
-      0%,100%{ transform: translateY(0); }
-      50%{ transform: translateY(-8px); }
+    a {
+      color: #2980b9;
+      text-decoration: none;
     }
 
-    .sparkle{
-      display:inline-block;
-      animation: twinkle 1.1s ease-in-out infinite alternate;
-    }
-    @keyframes twinkle{
-      from{ transform: rotate(-8deg) scale(1); filter: drop-shadow(0 0 0 transparent); }
-      to{ transform: rotate(8deg) scale(1.15); filter: drop-shadow(0 0 10px #facc15aa); }
-    }
-
-    /* Responsivo */
-    @media (max-width: 480px){
-      .badge{ padding: 10px 14px; }
+    a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
-
 <body>
-  <div class="confetti" aria-hidden="true"></div>
 
-  <div class="card">
-    <div class="glow" aria-hidden="true"></div>
+  <h1>Formulário: Entrega de documentação de estágio curricular- 2025.2 (Links dos Alunos)</h1>
+<div style="margin-bottom: 20px; text-align: center;">
+  <input type="text" id="filtroNome" placeholder="Filtrar por nome da disciplina..." onkeyup="filtrarTabela()" style="padding: 8px; width: 250px; margin: 5px;">
+  <input type="text" id="filtroTurno" placeholder="Filtrar por turno..." onkeyup="filtrarTabela()" style="padding: 8px; width: 200px; margin: 5px;">
+  <input type="text" id="filtroProf" placeholder="Filtrar por professora..." onkeyup="filtrarTabela()" style="padding: 8px; width: 250px; margin: 5px;">
+</div>
 
-    <div class="content">
-      <h1>
-        Aguarde o período de revisão de notas! <span class="sparkle">✨</span>
-      </h1>
 
-      <p class="sub">
-        Caso precise de algo, escreva para <strong>Ivaneide</strong> 💬
-      </p>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Ano / Turno</th>
+          <th>Disciplina</th>
+          <th>Nome da Disciplina</th>
+          <th>Professora</th>
+          <th>Link dos Alunos</th>
+        </tr>
+      </thead>
+      <tbody>
 
-      <div class="badge">
-        <span class="sparkle">🎉</span>
-        <span></span>
-        <span class="sparkle">📚</span>
-      </div>
-    </div>
+<tr>
+    <td>2025.2 - Matutino</td>
+    <td>Práticas Educacionais na 1ª Infância: bebês e crianças até 03 anos </td>
+    <td>Práticas Educacionais na 1ª Infância</td>
+    <td>Profa. Dra. Waldete Tristão</td>
+    <td><a href="https://forms.office.com/r/XUf8DtcSTh" target="_blank">Formulário</a></td>
+</tr>
+<tr>
+    <td>2025.2 - Matutino</td>
+    <td>Práticas para o Ensino da Língua Portuguesa nos Anos Iniciais do Ensino Fundamental </td>
+    <td>Práticas para o Ensino da Língua Portuguesa</td>
+    <td> Profa. Ma. Cris Mori</td>
+    <td><a href="https://forms.office.com/r/8VNVpHzgzq" target="_blank">Formulário</a></td>
+</tr>
+<tr>
+    <td>2025.2 - Matutino</td>
+    <td>Perspectivas e Paradigmas atuais para a formação integral do educador </td>
+    <td>Perspectivas e Paradigmas atuais para a formação integral do educador </td>
+    <td> Profa. Dra. Elizabeth Sanada Gurgueira</td>
+    <td><a href="https://forms.office.com/r/LSJdRP7u1h" target="_blank">Formulário</a></td>
+</tr>
+ 
+<tr>
+    <td>2025.2 - Matutino</td>
+    <td> Matriz 2017 (11081 - Coordenação Pedagógica)-  </td>
+    <td> Matriz 2017 (11081 - Coordenação Pedagógica)-  </td>
+    <td> Profa. Sofia </td>
+    <td><a href="https://forms.office.com/r/jMAZjVEPAn" target="_blank">Formulário</a></td>
+</tr>
+<tr>
+    <td>2025.2 - Matutino</td>
+    <td> Função do Diretor e Métodos de Gestão Institucional - 25 horas de estágio </td>
+    <td> Função do Diretor e Métodos de Gestão Institucional - 25 horas de estágio </td>
+    <td> Profa. Sofia </td>
+    <td><a href="https://forms.office.com/r/GrzqySTw6U" target="_blank">Formulário</a></td>
+</tr>
+<tr>
+    <td>2025.2 - Matutino</td>
+    <td> Oficio de Professor e Desenvolvimento Profissional - TCC III </td>
+    <td> Oficio de Professor e Desenvolvimento Profissional - TCC III </td>
+    <td> Profa.Dra. Alcione Piva e Profa. Ma. Edna Oliveira </td>
+    <td><a href="https://forms.office.com/Pages/ResponsePage.aspx?id=0CttMUH8HkaTcUQaaIj3mW2Phy292NNHtILZbizO0k5UMlNGMzRTUjRYNzk0NzlRTUxHRDFDQ1NFSy4u" target="_blank">Formulário</a></td>
+</tr>
+<tr>
+    <td>2025.2 - Matutino</td>
+    <td> Práticas Educacionais na 1ª. Infância com crianças de 4 e 5 anos </td>
+    <td> Práticas Educacionais na 1ª. Infância com crianças de 4 e 5 anos </td>
+    <td> Profa. Elizabeth Sanada </td>
+    <td><a href="https://forms.office.com/r/dCt3zVsL5z" target="_blank">Formulário</a></td>
+</tr>
+<tr>
+    <td>2025.2 - Noturno</td>
+    <td> Matriz 2017 (11081 - Coordenação Pedagógica)-  </td>
+    <td> Matriz 2017 (11081 - Coordenação Pedagógica)-  </td>
+    <td> Profa. Dra Waldete </td>
+    <td><a href="https://forms.office.com/r/V19SccgpCa" target="_blank">Formulário</a></td>
+</tr>
+<tr>
+    <td>2025.2 - Noturno</td>
+    <td>Práticas Educacionais na 1ª Infância: bebês e crianças até 03 anos </td>
+    <td>Práticas Educacionais na 1ª Infância: bebês e crianças até 03 anos </td>
+    <td>Profa. Ma. Viviane Anselmo</td>
+    <td><a href="https://forms.office.com/r/cdtwp1PXyk" target="_blank">Formulário</a></td>
+</tr>
+<tr>
+    <td>2025.2 - Noturno</td>
+    <td>Práticas para o Ensino da Língua Portuguesa nos Anos Iniciais do Ensino Fundamental </td>
+    <td>Práticas para o Ensino da Língua Portuguesa nos Anos Iniciais do Ensino Fundamental </td>
+    <td>Ma. Cristiane Mori</td>
+    <td><a href="https://forms.office.com/r/PHnd9n9WvC" target="_blank">Formulário</a></td>
+</tr>
+<tr>
+    <td>2025.2 - Noturno</td>
+    <td>Perspectivas e Paradigmas atuais para a formação integral do educador </td>
+    <td>Perspectivas e Paradigmas atuais para a formação integral do educador </td>
+    <td> Profa. Dra. Elizabeth Sanada Gurgueira</td>
+    <td><a href="https://forms.office.com/r/WznAtFxKVY" target="_blank">Formulário</a></td>
+</tr>
+<tr>
+    <td>2025.2 - Noturno</td>
+    <td>Oficio de Professor e Desenvolvimento Profissional - TCC III </td>
+    <td>Oficio de Professor e Desenvolvimento Profissional - TCC III </td>
+    <td> Profa.Dra. Alcione Piva </td>
+    <td><a href="https://forms.office.com/r/NVLtp08LRf" target="_blank">Formulário</a></td>
+</tr>
+
+      </tbody>
+    </table>
   </div>
+<script>
+  function filtrarTabela() {
+    const inputNome = document.getElementById("filtroNome").value.toLowerCase();
+    const inputTurno = document.getElementById("filtroTurno").value.toLowerCase();
+    const inputProf = document.getElementById("filtroProf").value.toLowerCase();
+    const table = document.querySelector("table");
+    const trs = table.querySelectorAll("tbody tr");
+
+    trs.forEach(tr => {
+      const turno = tr.children[0].textContent.toLowerCase();
+      const disciplina = tr.children[2].textContent.toLowerCase();
+      const professora = tr.children[3].textContent.toLowerCase();
+
+      const matchNome = disciplina.includes(inputNome);
+      const matchTurno = turno.includes(inputTurno);
+      const matchProf = professora.includes(inputProf);
+
+      if (matchNome && matchTurno && matchProf) {
+        tr.style.display = "";
+      } else {
+        tr.style.display = "none";
+      }
+    });
+  }
+</script>
+
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+

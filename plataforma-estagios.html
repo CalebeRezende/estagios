@@ -108,7 +108,6 @@
       <ul>
         <li><b>Authentication</b> → Sign-in method → ative <b>Google</b> e <b>Microsoft</b> (para Microsoft você precisa registrar um app no Azure AD e colar o Client ID/Secret lá).</li>
         <li><b>Firestore Database</b> → criar banco (modo produção).</li>
-        <li><b>Storage</b> → criar bucket padrão.</li>
       </ul>
       <p>Depois vá em Configurações do projeto → seus apps → adicione um "App da Web" e copie o objeto <code>firebaseConfig</code>. Cole-o no início do <code>&lt;script&gt;</code> deste arquivo HTML, substituindo o objeto <code>firebaseConfig</code> de exemplo. Ajuste também a lista <code>ADMIN_EMAILS</code> com o(s) e-mail(s) do(s) administrador(es) iniciais.</p>
 
@@ -116,12 +115,8 @@
       <p>Cole isto em Firestore Database → Regras:</p>
       <textarea class="codigo-copia" readonly id="txt-regras-firestore"></textarea>
 
-      <h3>3. Regras do Storage</h3>
-      <p>Cole isto em Storage → Regras:</p>
-      <textarea class="codigo-copia" readonly id="txt-regras-storage"></textarea>
-
-      <h3>4. (Opcional) Backup automático no Google Drive</h3>
-      <p>Todo documento enviado já fica salvo com segurança no Firebase Storage. Se você também quiser uma cópia automática dentro do seu próprio Google Drive, crie um projeto em <a href="https://script.google.com" target="_blank">script.google.com</a>, cole o código abaixo, troque <code>DRIVE_FOLDER_ID</code> pelo ID da pasta do seu Drive, implante como "Aplicativo da Web" (executar como você, acesso "qualquer pessoa") e cole a URL gerada na constante <code>DRIVE_BACKUP_WEBAPP_URL</code> no topo do script deste arquivo.</p>
+      <h3>3. Armazenamento dos documentos no Google Drive (obrigatório)</h3>
+      <p>Os arquivos enviados pelos alunos (ficha, contrato, etc.) são salvos diretamente no seu Google Drive — não é usado o Firebase Storage. Acesse <a href="https://script.google.com" target="_blank">script.google.com</a>, crie um projeto novo, cole o código abaixo, troque <code>DRIVE_FOLDER_ID</code> pelo ID de uma pasta do seu Drive (crie uma pasta e copie o ID que aparece na URL), implante como "Aplicativo da Web" (Executar como: <b>Eu</b>; Quem pode acessar: <b>Qualquer pessoa</b>) e cole a URL gerada na constante <code>DRIVE_WEBAPP_URL</code> no topo do script deste arquivo HTML.</p>
       <textarea class="codigo-copia" readonly id="txt-apps-script"></textarea>
 
       <p style="margin-top:20px;">Depois de preencher o <code>firebaseConfig</code> e salvar o arquivo, recarregue esta página.</p>
@@ -152,13 +147,12 @@
   </header>
   <nav class="abas" id="nav-abas"></nav>
   <main id="conteudo"></main>
-  <footer class="rodape">Plataforma de Gestão de Estágios — documentos armazenados com segurança no Firebase</footer>
+  <footer class="rodape">Plataforma de Gestão de Estágios — dados no Firebase, documentos no Google Drive</footer>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <script>
@@ -183,9 +177,10 @@ const firebaseConfig = {
 // Um administrador logado pode promover outras contas pela aba "Usuários".
 const ADMIN_EMAILS = ["calebemrnos@gmail.com"];
 
-// (Opcional) URL do Web App do Google Apps Script para backup automático
-// dos arquivos no seu Google Drive. Deixe em branco para desativar.
-const DRIVE_BACKUP_WEBAPP_URL = "";
+// URL do Web App do Google Apps Script usado para salvar os arquivos
+// enviados pelos alunos direto no seu Google Drive (veja a aba "Configuração").
+// Obrigatório para o envio de documentos funcionar.
+const DRIVE_WEBAPP_URL = "";
 
 const TIPOS_DOCUMENTO = [
   { id: "ficha",    nome: "Ficha de Estágio" },
@@ -197,7 +192,7 @@ const TIPOS_DOCUMENTO = [
    2. ESTADO GLOBAL E UTILITÁRIOS
    ====================================================================== */
 
-let app, auth, db, storage;
+let app, auth, db;
 let currentUser = null; // { uid, email, name, role }
 let activeUnsubs = [];
 let currentTab = null;
@@ -283,7 +278,6 @@ function initFirebase(){
   app = firebase.initializeApp(firebaseConfig);
   auth = firebase.auth();
   db = firebase.firestore();
-  storage = firebase.storage();
   auth.onAuthStateChanged(onAuthChange);
 }
 
@@ -583,12 +577,10 @@ function renderAjuda(){
   document.getElementById("conteudo").innerHTML = `
     <div class="card">
       <h2>Configuração e manutenção</h2>
-      <p>Estas mesmas instruções ficam disponíveis na tela de configuração inicial (antes de conectar o Firebase). Use-as como referência para revisar regras de segurança ou reconfigurar o backup no Drive.</p>
+      <p>Estas mesmas instruções ficam disponíveis na tela de configuração inicial (antes de conectar o Firebase). Use-as como referência para revisar regras de segurança ou reconfigurar o armazenamento no Drive.</p>
       <h3>Regras do Firestore</h3>
       <textarea class="codigo-copia" readonly>${escapeHtml(regrasFirestoreTexto())}</textarea>
-      <h3>Regras do Storage</h3>
-      <textarea class="codigo-copia" readonly>${escapeHtml(regrasStorageTexto())}</textarea>
-      <h3>Script de backup no Google Drive (Apps Script)</h3>
+      <h3>Script de armazenamento no Google Drive (Apps Script)</h3>
       <textarea class="codigo-copia" readonly>${escapeHtml(appsScriptTexto())}</textarea>
     </div>`;
 }
@@ -949,44 +941,56 @@ function renderListaDocumentosAluno(){
   });
 }
 
+const LIMITE_TAMANHO_MB = 20;
+
+function arquivoParaBase64(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = () => reject(new Error("Não foi possível ler o arquivo selecionado."));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function enviarArquivoParaDrive(file, meta){
+  if (!DRIVE_WEBAPP_URL){
+    throw new Error("O armazenamento no Google Drive ainda não foi configurado (DRIVE_WEBAPP_URL). Veja a aba Configuração.");
+  }
+  const base64 = await arquivoParaBase64(file);
+  const resposta = await fetch(DRIVE_WEBAPP_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      filename: file.name, mimeType: file.type || "application/octet-stream", data: base64,
+      tipo: meta.tipo, turmaNome: meta.turmaNome, alunoNome: meta.alunoNome
+    })
+  });
+  const json = await resposta.json();
+  if (!json.ok) throw new Error(json.error || "Falha ao salvar o arquivo no Google Drive.");
+  return json; // { ok, fileId, fileUrl }
+}
+
 async function enviarDocumento(tipo, file){
+  if (file.size > LIMITE_TAMANHO_MB * 1024 * 1024){
+    return toast(`Arquivo muito grande (máximo ${LIMITE_TAMANHO_MB}MB).`, "erro");
+  }
   showLoading();
   try {
-    const caminho = `documentos/${selectedTurmaId}/${currentUser.email}/${tipo}_${Date.now()}_${file.name}`;
-    const ref = storage.ref(caminho);
-    await ref.put(file);
-    const url = await ref.getDownloadURL();
+    const resultado = await enviarArquivoParaDrive(file, {
+      tipo, turmaNome: cacheTurma ? cacheTurma.nome : selectedTurmaId, alunoNome: currentUser.name
+    });
 
     const docId = `${selectedTurmaId}_${currentUser.email}_${tipo}`;
     await db.collection("documentos").doc(docId).set({
       turmaId: selectedTurmaId, alunoEmail: currentUser.email, alunoNome: currentUser.name, tipo,
-      status: "enviado", arquivoNome: file.name, arquivoURL: url, storagePath: caminho,
+      status: "enviado", arquivoNome: file.name, arquivoURL: resultado.fileUrl, driveFileId: resultado.fileId || "",
       enviadoEm: serverTs(), observacao: ""
     }, { merge: true });
 
     toast("Documento enviado! Aguardando validação do professor.", "sucesso");
-    backupParaDrive(file, { tipo, turmaNome: cacheTurma ? cacheTurma.nome : selectedTurmaId, alunoNome: currentUser.name });
   } catch (e){
     console.error(e);
     toast("Erro ao enviar documento: " + e.message, "erro");
   } finally { hideLoading(); }
-}
-
-function backupParaDrive(file, meta){
-  if (!DRIVE_BACKUP_WEBAPP_URL) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    const base64 = reader.result.split(",")[1];
-    fetch(DRIVE_BACKUP_WEBAPP_URL, {
-      method: "POST",
-      mode: "no-cors",
-      body: JSON.stringify({
-        filename: file.name, mimeType: file.type || "application/octet-stream", data: base64,
-        tipo: meta.tipo, turmaNome: meta.turmaNome, alunoNome: meta.alunoNome
-      })
-    }).catch(() => { /* backup é best-effort, o Firebase Storage já é a cópia oficial */ });
-  };
-  reader.readAsDataURL(file);
 }
 
 /* ======================================================================
@@ -1036,17 +1040,6 @@ service cloud.firestore {
 }`;
 }
 
-function regrasStorageTexto(){
-  return `rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /documentos/{turmaId}/{alunoEmail}/{arquivo} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}`;
-}
-
 function appsScriptTexto(){
   return `const DRIVE_FOLDER_ID = 'COLOQUE_AQUI_O_ID_DA_PASTA_NO_SEU_DRIVE';
 
@@ -1058,9 +1051,12 @@ function doPost(e) {
     const subFolder = getOrCreateFolder(folder, nomeSubpasta);
     const bytes = Utilities.base64Decode(body.data);
     const blob = Utilities.newBlob(bytes, body.mimeType, body.filename);
-    subFolder.createFile(blob);
-    return ContentService.createTextOutput(JSON.stringify({ ok: true }))
-      .setMimeType(ContentService.MimeType.JSON);
+    const file = subFolder.createFile(blob);
+    // Permite que professores/admins abram o link mesmo sem acesso direto à sua conta do Drive
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    return ContentService.createTextOutput(JSON.stringify({
+      ok: true, fileId: file.getId(), fileUrl: file.getUrl()
+    })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
       .setMimeType(ContentService.MimeType.JSON);
@@ -1081,7 +1077,6 @@ function getOrCreateFolder(parent, nome) {
 document.addEventListener("DOMContentLoaded", () => {
   if (!isFirebaseConfigured()){
     document.getElementById("txt-regras-firestore").value = regrasFirestoreTexto();
-    document.getElementById("txt-regras-storage").value = regrasStorageTexto();
     document.getElementById("txt-apps-script").value = appsScriptTexto();
     document.getElementById("tela-setup").classList.remove("hidden");
     return;

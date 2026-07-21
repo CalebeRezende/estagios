@@ -627,7 +627,39 @@ function renderAdminUsuarios(){
 
 function renderAdminTurmas(){
   const conteudo = document.getElementById("conteudo");
-  conteudo.innerHTML = `<div class="card"><h2>Todas as turmas</h2><div class="table-container" id="tabela-turmas-admin">Carregando...</div></div>`;
+  conteudo.innerHTML = `
+    <div class="card">
+      <h2>Nova turma</h2>
+      <div class="linha-form">
+        <div><label>Nome da turma</label><input type="text" id="input-nome-turma-admin" placeholder="Ex: Estágio Supervisionado I - 2026.1"></div>
+        <div><label>Professor(a) responsável</label><select id="select-professor-turma"><option value="">Carregando...</option></select></div>
+        <div style="flex:0;"><button class="btn" id="btn-criar-turma-admin">Criar turma</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Todas as turmas</h2>
+      <div class="table-container" id="tabela-turmas-admin">Carregando...</div>
+    </div>`;
+
+  carregarProfessoresNoSelect();
+
+  document.getElementById("btn-criar-turma-admin").addEventListener("click", async () => {
+    const nome = document.getElementById("input-nome-turma-admin").value.trim();
+    const select = document.getElementById("select-professor-turma");
+    const professorId = select.value;
+    const professorNome = professorId ? select.options[select.selectedIndex].text : "";
+    if (!nome) return toast("Informe o nome da turma", "erro");
+    if (!professorId) return toast("Selecione o professor responsável", "erro");
+    showLoading();
+    try {
+      await criarTurmaComCodigoUnico(nome, professorId, professorNome);
+      toast("Turma criada com sucesso", "sucesso");
+      document.getElementById("input-nome-turma-admin").value = "";
+    } catch (e){
+      toast(e.message, "erro");
+    } finally { hideLoading(); }
+  });
+
   const unsub = db.collection("turmas").orderBy("criadoEm", "desc").onSnapshot(snap => {
     const linhas = snap.docs.map(doc => {
       const t = doc.data();
@@ -640,6 +672,21 @@ function renderAdminTurmas(){
       </table>`;
   });
   activeUnsubs.push(unsub);
+}
+
+async function carregarProfessoresNoSelect(){
+  const select = document.getElementById("select-professor-turma");
+  if (!select) return;
+  const snap = await db.collection("users").where("role", "==", "professor").get();
+  const professores = snap.docs
+    .map(d => ({ id: d.id, nome: d.data().name }))
+    .sort((a, b) => a.nome.localeCompare(b.nome));
+  if (professores.length === 0){
+    select.innerHTML = `<option value="">Nenhum professor cadastrado ainda</option>`;
+    return;
+  }
+  select.innerHTML = `<option value="">Selecione...</option>` +
+    professores.map(p => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`).join("");
 }
 
 function renderAjuda(){
@@ -663,29 +710,9 @@ function renderProfessorTurmas(){
   const conteudo = document.getElementById("conteudo");
   conteudo.innerHTML = `
     <div class="card">
-      <h2>Nova turma</h2>
-      <div class="linha-form">
-        <div><label>Nome da turma</label><input type="text" id="input-nome-turma" placeholder="Ex: Estágio Supervisionado I - 2026.1"></div>
-        <div style="flex:0;"><button class="btn" id="btn-criar-turma">Criar turma</button></div>
-      </div>
-    </div>
-    <div class="card">
       <h2>Minhas turmas</h2>
       <div class="grid-cards" id="grid-turmas-professor">Carregando...</div>
     </div>`;
-
-  document.getElementById("btn-criar-turma").addEventListener("click", async () => {
-    const nome = document.getElementById("input-nome-turma").value.trim();
-    if (!nome) return toast("Informe o nome da turma", "erro");
-    showLoading();
-    try {
-      await criarTurmaComCodigoUnico(nome);
-      toast("Turma criada com sucesso", "sucesso");
-      document.getElementById("input-nome-turma").value = "";
-    } catch (e){
-      toast(e.message, "erro");
-    } finally { hideLoading(); }
-  });
 
   const unsub = db.collection("turmas").where("professorId", "==", currentUser.uid).onSnapshot(snap => {
     const cards = snap.docs.map(doc => {
@@ -697,7 +724,7 @@ function renderProfessorTurmas(){
           <p style="font-size:.8em;color:#888;">Criada em ${fmtData(t.criadoEm)}</p>
         </div>`;
     }).join("");
-    document.getElementById("grid-turmas-professor").innerHTML = cards || "<p>Você ainda não criou nenhuma turma.</p>";
+    document.getElementById("grid-turmas-professor").innerHTML = cards || "<p>Nenhuma turma foi atribuída a você ainda. Peça ao administrador para criar e vincular uma turma ao seu usuário.</p>";
     document.querySelectorAll("#grid-turmas-professor .turma-card").forEach(card => {
       card.addEventListener("click", () => { selectedTurmaId = card.dataset.id; renderProfessorTurmaDetalhe(); });
     });
@@ -705,13 +732,13 @@ function renderProfessorTurmas(){
   activeUnsubs.push(unsub);
 }
 
-async function criarTurmaComCodigoUnico(nome){
+async function criarTurmaComCodigoUnico(nome, professorId, professorNome){
   for (let tentativa = 0; tentativa < 10; tentativa++){
     const codigo = gerarCodigoTurma();
     const existente = await db.collection("turmas").where("codigo", "==", codigo).limit(1).get();
     if (existente.empty){
       const ref = await db.collection("turmas").add({
-        nome, professorId: currentUser.uid, professorNome: currentUser.name, codigo, criadoEm: serverTs()
+        nome, professorId, professorNome, codigo, criadoEm: serverTs(), criadoPor: currentUser.uid
       });
       return ref.id;
     }
@@ -730,34 +757,11 @@ function renderProfessorTurmaDetalhe(){
       <div class="table-container" id="tabela-solicitacoes">Carregando...</div>
     </div>
     <div class="card">
-      <h2>Adicionar aluno diretamente</h2>
-      <div class="linha-form">
-        <div><label>Nome do aluno</label><input type="text" id="input-nome-aluno"></div>
-        <div><label>Email do aluno</label><input type="email" id="input-email-aluno"></div>
-        <div style="flex:0;"><button class="btn" id="btn-add-aluno">Adicionar</button></div>
-      </div>
-    </div>
-    <div class="card">
       <h2>Alunos e documentos</h2>
       <div class="table-container" id="tabela-documentos">Carregando...</div>
     </div>`;
 
   document.getElementById("btn-voltar-turma").addEventListener("click", () => { selectedTurmaId = null; renderProfessorTurmas(); });
-
-  document.getElementById("btn-add-aluno").addEventListener("click", async () => {
-    const nome = document.getElementById("input-nome-aluno").value.trim();
-    const email = document.getElementById("input-email-aluno").value.trim().toLowerCase();
-    if (!nome || !emailValido(email)) return toast("Informe nome e e-mail válidos", "erro");
-    showLoading();
-    try {
-      await adicionarAlunoNaTurma(selectedTurmaId, nome, email);
-      toast("Aluno adicionado à turma", "sucesso");
-      document.getElementById("input-nome-aluno").value = "";
-      document.getElementById("input-email-aluno").value = "";
-    } catch (e){
-      toast(e.message, "erro");
-    } finally { hideLoading(); }
-  });
 
   db.collection("turmas").doc(selectedTurmaId).get().then(doc => {
     if (!doc.exists){ toast("Turma não encontrada", "erro"); selectedTurmaId = null; return renderProfessorTurmas(); }
@@ -815,15 +819,6 @@ async function responderSolicitacao(matriculaId, aprovado){
     toast(aprovado ? "Aluno aprovado na turma" : "Solicitação recusada", "sucesso");
   } catch (e){ toast(e.message, "erro"); }
   finally { hideLoading(); }
-}
-
-async function adicionarAlunoNaTurma(turmaId, nome, emailLower){
-  const matriculaRef = db.collection("matriculas").doc(turmaId + "_" + emailLower);
-  await matriculaRef.set({
-    turmaId, turmaNome: cacheTurma ? cacheTurma.nome : "", alunoEmail: emailLower, alunoNome: nome,
-    status: "aprovado", origem: "professor", criadoEm: serverTs(), respondidoEm: serverTs()
-  }, { merge: true });
-  await db.collection("invites").doc(emailLower).set({ name: nome, role: "aluno", criadoEm: serverTs() }, { merge: true });
 }
 
 function renderMatrizDocumentos(){
@@ -1091,13 +1086,12 @@ service cloud.firestore {
 
     match /turmas/{turmaId} {
       allow read: if logado();
-      allow create: if souProfessor();
-      allow update, delete: if souProfessor() && resource.data.professorId == request.auth.uid;
+      allow create, update, delete: if souAdmin();
     }
 
     match /matriculas/{matriculaId} {
       allow read: if logado();
-      allow create: if logado();
+      allow create: if logado() && request.resource.data.alunoEmail == request.auth.token.email;
       allow update: if souProfessor() || (logado() && resource.data.alunoEmail == request.auth.token.email);
     }
 

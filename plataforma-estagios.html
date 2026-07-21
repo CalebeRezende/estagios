@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plataforma de Gestão de Estágios</title>
+<style>
+  :root{
+    --azul-escuro:#2c3e50;
+    --azul:#2980b9;
+    --fundo:#f4f6f9;
+    --verde:#27ae60;
+    --amarelo:#f39c12;
+    --vermelho:#e74c3c;
+    --cinza:#95a5a6;
+  }
+  *{box-sizing:border-box;}
+  body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:var(--fundo);color:#2d2d2d;margin:0;}
+  .hidden{display:none !important;}
+  a{color:var(--azul);}
+  h1,h2,h3{color:var(--azul-escuro);}
+  code{background:#eef3f8;padding:2px 6px;border-radius:4px;}
+
+  header.topo{background:var(--azul-escuro);color:#fff;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+  header.topo h1{font-size:1.2em;margin:0;color:#fff;}
+  .user-info{display:flex;align-items:center;gap:10px;font-size:.9em;flex-wrap:wrap;}
+  .papel-tag{background:var(--azul);padding:3px 10px;border-radius:12px;font-size:.8em;text-transform:uppercase;letter-spacing:.03em;}
+
+  nav.abas{display:flex;gap:6px;background:#fff;padding:8px 16px;border-bottom:1px solid #ddd;flex-wrap:wrap;position:sticky;top:0;z-index:50;}
+  nav.abas button{background:none;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:.95em;color:#555;font-weight:600;}
+  nav.abas button:hover{background:#f0f3f7;}
+  nav.abas button.ativa{background:var(--azul);color:#fff;}
+
+  main{padding:24px;max-width:1100px;margin:0 auto;}
+  .card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:20px;}
+  .grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;}
+  .grid-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px;margin-bottom:20px;}
+  .stat-box{background:#fff;border-radius:10px;padding:18px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+  .stat-box .num{font-size:2em;font-weight:bold;color:var(--azul);}
+  .stat-box .lbl{color:#777;font-size:.85em;}
+
+  .turma-card{background:#fff;border-radius:10px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.08);cursor:pointer;border-left:5px solid var(--azul);transition:.15s;}
+  .turma-card:hover{box-shadow:0 4px 14px rgba(0,0,0,.16);transform:translateY(-1px);}
+  .turma-card h3{margin:0 0 8px 0;font-size:1.05em;}
+  .codigo{font-family:monospace;font-weight:bold;background:#eef3f8;padding:2px 8px;border-radius:6px;letter-spacing:.05em;}
+
+  .table-container{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;min-width:520px;}
+  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid #eee;vertical-align:middle;}
+  thead{background:var(--azul-escuro);color:#fff;}
+  tbody tr:hover{background:#f7f9fb;}
+
+  .badge{color:#fff;padding:3px 10px;border-radius:12px;font-size:.78em;white-space:nowrap;display:inline-block;}
+  .btn{background:var(--azul);color:#fff;border:none;padding:9px 16px;border-radius:6px;cursor:pointer;font-size:.88em;font-weight:600;}
+  .btn:hover{opacity:.88;}
+  .btn.secundario{background:#7f8c8d;}
+  .btn.perigo{background:var(--vermelho);}
+  .btn.sucesso{background:var(--verde);}
+  .btn.pequeno{padding:5px 10px;font-size:.8em;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .btn-group{display:flex;gap:6px;flex-wrap:wrap;}
+
+  input[type=text],input[type=email],input[type=file],textarea,select{padding:9px 10px;border:1px solid #ccc;border-radius:6px;font-size:.95em;width:100%;font-family:inherit;}
+  .linha-form{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;}
+  .linha-form>div{flex:1;min-width:170px;}
+  label{font-size:.83em;color:#555;display:block;margin-bottom:4px;font-weight:600;}
+
+  .toast-container{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:10px;align-items:flex-end;}
+  .toast{background:var(--azul-escuro);color:#fff;padding:14px 20px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);max-width:340px;font-size:.9em;}
+  .toast.erro{background:var(--vermelho);}
+  .toast.sucesso{background:var(--verde);}
+
+  .login-box{max-width:420px;margin:80px auto;background:#fff;padding:40px;border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.12);text-align:center;}
+  .btn-sso{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:1em;margin-bottom:12px;font-weight:600;}
+  .btn-sso:hover{background:#f5f5f5;}
+  .btn-sso.google{color:#444;}
+  .btn-sso.microsoft{color:#444;}
+
+  .spinner-overlay{position:fixed;inset:0;background:rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;z-index:1000;}
+  .spinner{width:44px;height:44px;border:5px solid #ddd;border-top-color:var(--azul);border-radius:50%;animation:girar 1s linear infinite;}
+  @keyframes girar{to{transform:rotate(360deg);}}
+
+  textarea.codigo-copia{width:100%;min-height:160px;font-family:'Consolas',monospace;font-size:.78em;background:#282c34;color:#abb2bf;padding:14px;border-radius:8px;border:none;resize:vertical;}
+  .aviso{background:#fff3cd;border-left:5px solid var(--amarelo);padding:14px;border-radius:6px;margin-bottom:16px;}
+  .info-box{background:#eaf4fc;border-left:5px solid var(--azul);padding:14px;border-radius:6px;margin-bottom:16px;}
+  .doc-linha{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 0;border-bottom:1px solid #eee;}
+  .doc-linha:last-child{border-bottom:none;}
+  .doc-nome{font-weight:600;min-width:200px;}
+  footer.rodape{text-align:center;padding:24px;color:#999;font-size:.8em;}
+  .voltar-link{background:none;border:none;color:var(--azul);cursor:pointer;font-size:.9em;padding:0;margin-bottom:14px;font-weight:600;}
+  .secao-titulo{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+</style>
+</head>
+<body>
+
+<div id="spinner" class="spinner-overlay hidden"><div class="spinner"></div></div>
+<div id="toast-container" class="toast-container"></div>
+
+<!-- TELA DE CONFIGURAÇÃO (aparece se o Firebase ainda não foi configurado) -->
+<div id="tela-setup" class="hidden">
+  <main>
+    <div class="card">
+      <h1>⚙️ Configuração necessária</h1>
+      <div class="aviso">Este arquivo ainda não está conectado a um backend. Sem essa configuração, o sistema não consegue compartilhar dados entre professores e alunos em dispositivos diferentes.</div>
+
+      <h3>1. Crie um projeto Firebase (gratuito)</h3>
+      <p>Acesse <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a>, crie um projeto, ative:</p>
+      <ul>
+        <li><b>Authentication</b> → Sign-in method → ative <b>Google</b> e <b>Microsoft</b> (para Microsoft você precisa registrar um app no Azure AD e colar o Client ID/Secret lá).</li>
+        <li><b>Firestore Database</b> → criar banco (modo produção).</li>
+        <li><b>Storage</b> → criar bucket padrão.</li>
+      </ul>
+      <p>Depois vá em Configurações do projeto → seus apps → adicione um "App da Web" e copie o objeto <code>firebaseConfig</code>. Cole-o no início do <code>&lt;script&gt;</code> deste arquivo HTML, substituindo o objeto <code>firebaseConfig</code> de exemplo. Ajuste também a lista <code>ADMIN_EMAILS</code> com o(s) e-mail(s) do(s) administrador(es) iniciais.</p>
+
+      <h3>2. Regras de segurança do Firestore</h3>
+      <p>Cole isto em Firestore Database → Regras:</p>
+      <textarea class="codigo-copia" readonly id="txt-regras-firestore"></textarea>
+
+      <h3>3. Regras do Storage</h3>
+      <p>Cole isto em Storage → Regras:</p>
+      <textarea class="codigo-copia" readonly id="txt-regras-storage"></textarea>
+
+      <h3>4. (Opcional) Backup automático no Google Drive</h3>
+      <p>Todo documento enviado já fica salvo com segurança no Firebase Storage. Se você também quiser uma cópia automática dentro do seu próprio Google Drive, crie um projeto em <a href="https://script.google.com" target="_blank">script.google.com</a>, cole o código abaixo, troque <code>DRIVE_FOLDER_ID</code> pelo ID da pasta do seu Drive, implante como "Aplicativo da Web" (executar como você, acesso "qualquer pessoa") e cole a URL gerada na constante <code>DRIVE_BACKUP_WEBAPP_URL</code> no topo do script deste arquivo.</p>
+      <textarea class="codigo-copia" readonly id="txt-apps-script"></textarea>
+
+      <p style="margin-top:20px;">Depois de preencher o <code>firebaseConfig</code> e salvar o arquivo, recarregue esta página.</p>
+    </div>
+  </main>
+</div>
+
+<!-- TELA DE LOGIN -->
+<div id="tela-login" class="hidden">
+  <div class="login-box">
+    <h1>🎓 Plataforma de Estágios</h1>
+    <p style="color:#666;">Gestão de entrega e validação de documentos de estágio curricular</p>
+    <button class="btn-sso google" id="btn-login-google">🟦&nbsp; Entrar com Google</button>
+    <button class="btn-sso microsoft" id="btn-login-microsoft">🟪&nbsp; Entrar com Microsoft</button>
+    <p style="font-size:.8em;color:#888;margin-top:22px;">Alunos: sua conta é criada automaticamente no primeiro acesso.<br>Professores: seu acesso precisa ter sido cadastrado antes por um administrador.</p>
+  </div>
+</div>
+
+<!-- APP PRINCIPAL -->
+<div id="app" class="hidden">
+  <header class="topo">
+    <h1>🎓 Plataforma de Estágios</h1>
+    <div class="user-info">
+      <span id="txt-user-nome"></span>
+      <span class="papel-tag" id="txt-user-papel"></span>
+      <button class="btn secundario pequeno" id="btn-logout">Sair</button>
+    </div>
+  </header>
+  <nav class="abas" id="nav-abas"></nav>
+  <main id="conteudo"></main>
+  <footer class="rodape">Plataforma de Gestão de Estágios — documentos armazenados com segurança no Firebase</footer>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<script>
+'use strict';
+
+/* ======================================================================
+   1. CONFIGURAÇÃO — edite esta seção para conectar ao seu projeto Firebase
+   ====================================================================== */
+
+// Cole aqui o objeto de configuração do seu projeto Firebase
+// (Console Firebase → Configurações do projeto → Seus apps → App da Web)
+const firebaseConfig = {
+  apiKey: "COLE_AQUI_SUA_API_KEY",
+  authDomain: "SEU_PROJETO.firebaseapp.com",
+  projectId: "SEU_PROJETO",
+  storageBucket: "SEU_PROJETO.appspot.com",
+  messagingSenderId: "SEU_SENDER_ID",
+  appId: "SEU_APP_ID"
+};
+
+// E-mails (minúsculos) que sempre entram como administrador.
+// Um administrador logado pode promover outras contas pela aba "Usuários".
+const ADMIN_EMAILS = ["calebemrnos@gmail.com"];
+
+// (Opcional) URL do Web App do Google Apps Script para backup automático
+// dos arquivos no seu Google Drive. Deixe em branco para desativar.
+const DRIVE_BACKUP_WEBAPP_URL = "";
+
+const TIPOS_DOCUMENTO = [
+  { id: "ficha",    nome: "Ficha de Estágio" },
+  { id: "contrato", nome: "Contrato de Estágio" },
+  { id: "outro",    nome: "Outro Documento Obrigatório" }
+];
+
+/* ======================================================================
+   2. ESTADO GLOBAL E UTILITÁRIOS
+   ====================================================================== */
+
+let app, auth, db, storage;
+let currentUser = null; // { uid, email, name, role }
+let activeUnsubs = [];
+let currentTab = null;
+let selectedTurmaId = null;
+
+// caches usados nas telas de detalhe
+let cacheTurma = null;
+let cacheMatriculas = [];
+let cacheDocumentos = {}; // chave `${emailLower}_${tipo}` -> doc
+
+function isFirebaseConfigured(){
+  return firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("COLE_AQUI");
+}
+
+function escapeHtml(str){
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function showLoading(){ document.getElementById("spinner").classList.remove("hidden"); }
+function hideLoading(){ document.getElementById("spinner").classList.add("hidden"); }
+
+function toast(msg, tipo){
+  const container = document.getElementById("toast-container");
+  const div = document.createElement("div");
+  div.className = "toast" + (tipo ? " " + tipo : "");
+  div.textContent = msg;
+  container.appendChild(div);
+  setTimeout(() => div.remove(), 5000);
+}
+
+function fmtData(ts){
+  if (!ts) return "—";
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function clearUnsubs(){
+  activeUnsubs.forEach(u => { try { u(); } catch(e){} });
+  activeUnsubs = [];
+}
+
+const serverTs = () => firebase.firestore.FieldValue.serverTimestamp();
+
+const STATUS_DOC_INFO = {
+  pendente:  { label: "Pendente de envio",     cor: "#95a5a6" },
+  enviado:   { label: "Em análise",            cor: "#f39c12" },
+  validado:  { label: "Concluído",             cor: "#27ae60" },
+  rejeitado: { label: "Rejeitado — reenviar",  cor: "#e74c3c" }
+};
+
+const STATUS_MATRICULA_INFO = {
+  pendente: { label: "Aguardando aprovação", cor: "#f39c12" },
+  aprovado: { label: "Matriculado",          cor: "#27ae60" },
+  recusado: { label: "Recusado",             cor: "#e74c3c" }
+};
+
+function badge(info){
+  return `<span class="badge" style="background:${info.cor}">${escapeHtml(info.label)}</span>`;
+}
+
+function emailValido(email){
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function gerarCodigoTurma(){
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // sem 0,O,1,I para evitar confusão
+  let c = "";
+  for (let i = 0; i < 6; i++) c += chars[Math.floor(Math.random() * chars.length)];
+  return c;
+}
+
+/* ======================================================================
+   3. INICIALIZAÇÃO / AUTENTICAÇÃO
+   ====================================================================== */
+
+function initFirebase(){
+  app = firebase.initializeApp(firebaseConfig);
+  auth = firebase.auth();
+  db = firebase.firestore();
+  storage = firebase.storage();
+  auth.onAuthStateChanged(onAuthChange);
+}
+
+async function onAuthChange(user){
+  clearUnsubs();
+  selectedTurmaId = null;
+  if (!user){
+    currentUser = null;
+    document.getElementById("app").classList.add("hidden");
+    document.getElementById("tela-login").classList.remove("hidden");
+    return;
+  }
+  showLoading();
+  try {
+    currentUser = await resolveUserProfile(user);
+    document.getElementById("tela-login").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("txt-user-nome").textContent = currentUser.name;
+    document.getElementById("txt-user-papel").textContent = currentUser.role;
+    renderNav();
+  } catch (e){
+    console.error(e);
+    toast("Erro ao carregar seu perfil: " + e.message, "erro");
+    auth.signOut();
+  } finally {
+    hideLoading();
+  }
+}
+
+async function resolveUserProfile(user){
+  const emailLower = (user.email || "").toLowerCase();
+  const userRef = db.collection("users").doc(user.uid);
+  const snap = await userRef.get();
+
+  if (snap.exists){
+    const data = snap.data();
+    return { uid: user.uid, email: emailLower, name: data.name || user.displayName || emailLower, role: data.role };
+  }
+
+  // primeiro login: resolve papel a partir de convite do admin/professor, allowlist de admin, ou aluno por padrão
+  let role, name = user.displayName || emailLower;
+  const inviteRef = db.collection("invites").doc(emailLower);
+  const inviteSnap = await inviteRef.get();
+
+  if (inviteSnap.exists){
+    role = inviteSnap.data().role || "aluno";
+    name = inviteSnap.data().name || name;
+    await inviteRef.set({ usado: true, usadoEm: serverTs() }, { merge: true });
+  } else if (ADMIN_EMAILS.includes(emailLower)){
+    role = "admin";
+  } else {
+    role = "aluno"; // autocadastro
+  }
+
+  await userRef.set({ name, email: emailLower, role, criadoEm: serverTs() });
+  return { uid: user.uid, email: emailLower, name, role };
+}
+
+function signInGoogle(){
+  const provider = new firebase.auth.GoogleAuthProvider();
+  showLoading();
+  auth.signInWithPopup(provider).catch(handleLoginError).finally(hideLoading);
+}
+
+function signInMicrosoft(){
+  const provider = new firebase.auth.OAuthProvider("microsoft.com");
+  provider.setCustomParameters({ tenant: "common" });
+  showLoading();
+  auth.signInWithPopup(provider).catch(handleLoginError).finally(hideLoading);
+}
+
+function handleLoginError(e){
+  console.error(e);
+  if (e.code === "auth/popup-closed-by-user") return;
+  toast("Não foi possível entrar: " + e.message, "erro");
+}
+
+/* ======================================================================
+   4. NAVEGAÇÃO / ABAS POR PAPEL
+   ====================================================================== */
+
+function tabsForRole(role){
+  if (role === "admin") return [
+    { id: "dashboard", label: "Visão geral" },
+    { id: "importar", label: "Importar Excel" },
+    { id: "usuarios", label: "Usuários" },
+    { id: "turmas-admin", label: "Turmas" },
+    { id: "ajuda", label: "Configuração" }
+  ];
+  if (role === "professor") return [
+    { id: "turmas", label: "Minhas Turmas" }
+  ];
+  return [
+    { id: "turmas-aluno", label: "Minhas Turmas" }
+  ];
+}
+
+function renderNav(){
+  const tabs = tabsForRole(currentUser.role);
+  const nav = document.getElementById("nav-abas");
+  nav.innerHTML = tabs.map(t => `<button data-tab="${t.id}" class="${t.id === currentTab ? "ativa" : ""}">${escapeHtml(t.label)}</button>`).join("");
+  nav.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+  });
+  switchTab(currentTab && tabs.some(t => t.id === currentTab) ? currentTab : tabs[0].id);
+}
+
+function switchTab(tabId){
+  currentTab = tabId;
+  selectedTurmaId = null;
+  document.querySelectorAll("#nav-abas button").forEach(b => b.classList.toggle("ativa", b.dataset.tab === tabId));
+  renderTab(tabId);
+}
+
+function renderTab(tabId){
+  clearUnsubs();
+  const map = {
+    "dashboard": renderAdminDashboard,
+    "importar": renderAdminImportar,
+    "usuarios": renderAdminUsuarios,
+    "turmas-admin": renderAdminTurmas,
+    "ajuda": renderAjuda,
+    "turmas": renderProfessorTurmas,
+    "turmas-aluno": renderAlunoTurmas
+  };
+  (map[tabId] || (() => {}))();
+}
+
+/* ======================================================================
+   5. ADMIN
+   ====================================================================== */
+
+function renderAdminDashboard(){
+  const conteudo = document.getElementById("conteudo");
+  conteudo.innerHTML = `<div class="grid-stats" id="admin-stats"><div class="stat-box"><div class="num">…</div><div class="lbl">carregando</div></div></div>`;
+  const unsub = db.collection("users").onSnapshot(snap => {
+    let admins = 0, professores = 0, alunos = 0;
+    snap.forEach(doc => {
+      const r = doc.data().role;
+      if (r === "admin") admins++; else if (r === "professor") professores++; else alunos++;
+    });
+    db.collection("turmas").get().then(turmasSnap => {
+      document.getElementById("admin-stats").innerHTML = `
+        <div class="stat-box"><div class="num">${snap.size}</div><div class="lbl">Usuários totais</div></div>
+        <div class="stat-box"><div class="num">${professores}</div><div class="lbl">Professores</div></div>
+        <div class="stat-box"><div class="num">${alunos}</div><div class="lbl">Alunos</div></div>
+        <div class="stat-box"><div class="num">${admins}</div><div class="lbl">Administradores</div></div>
+        <div class="stat-box"><div class="num">${turmasSnap.size}</div><div class="lbl">Turmas</div></div>
+      `;
+    });
+  });
+  activeUnsubs.push(unsub);
+}
+
+function renderAdminImportar(){
+  const conteudo = document.getElementById("conteudo");
+  conteudo.innerHTML = `
+    <div class="card">
+      <h2>Importar professores e alunos via Excel</h2>
+      <div class="info-box">A planilha deve ter colunas <b>Nome</b>, <b>Email</b> e <b>Papel</b> (valores: <code>professor</code> ou <code>aluno</code>). O cadastro é aplicado no primeiro login da pessoa com Google ou Microsoft.</div>
+      <input type="file" id="input-excel" accept=".xlsx,.xls,.csv">
+      <div id="resultado-importacao" style="margin-top:16px;"></div>
+    </div>
+  `;
+  document.getElementById("input-excel").addEventListener("change", handleExcelFile);
+}
+
+function detectarPapel(valor){
+  const v = (valor || "").toString().toLowerCase();
+  if (v.includes("prof")) return "professor";
+  if (v.includes("admin")) return "admin";
+  return "aluno";
+}
+
+async function handleExcelFile(ev){
+  const file = ev.target.files[0];
+  if (!file) return;
+  showLoading();
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: "array" });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const linhas = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+    const resultados = [];
+    for (const linhaOriginal of linhas){
+      const linha = {};
+      Object.keys(linhaOriginal).forEach(k => { linha[k.toString().trim().toLowerCase()] = linhaOriginal[k]; });
+      const nome = (linha["nome"] || linha["name"] || "").toString().trim();
+      const email = (linha["email"] || linha["e-mail"] || "").toString().trim().toLowerCase();
+      const papelBruto = linha["papel"] || linha["role"] || linha["tipo"] || linha["função"] || linha["funcao"] || "";
+      const papel = detectarPapel(papelBruto);
+
+      if (!email || !emailValido(email)){
+        resultados.push({ nome, email, papel, ok: false, motivo: "E-mail inválido ou vazio" });
+        continue;
+      }
+      if (!nome){
+        resultados.push({ nome, email, papel, ok: false, motivo: "Nome vazio" });
+        continue;
+      }
+      try {
+        await db.collection("invites").doc(email).set({
+          name: nome, role: papel, criadoEm: serverTs(), criadoPor: currentUser.uid, usado: false
+        }, { merge: true });
+
+        const usuarioExistente = await db.collection("users").where("email", "==", email).limit(1).get();
+        if (!usuarioExistente.empty){
+          await usuarioExistente.docs[0].ref.update({ role: papel, name: nome });
+        }
+        resultados.push({ nome, email, papel, ok: true, motivo: "Importado" });
+      } catch (e){
+        resultados.push({ nome, email, papel, ok: false, motivo: e.message });
+      }
+    }
+
+    const linhasHtml = resultados.map(r => `
+      <tr>
+        <td>${escapeHtml(r.nome)}</td>
+        <td>${escapeHtml(r.email)}</td>
+        <td>${escapeHtml(r.papel)}</td>
+        <td>${r.ok ? badge({label:"OK",cor:"#27ae60"}) : badge({label:"Erro",cor:"#e74c3c"})}</td>
+        <td>${escapeHtml(r.motivo)}</td>
+      </tr>`).join("");
+
+    document.getElementById("resultado-importacao").innerHTML = `
+      <p><b>${resultados.filter(r=>r.ok).length}</b> de <b>${resultados.length}</b> linhas importadas com sucesso.</p>
+      <div class="table-container">
+        <table>
+          <thead><tr><th>Nome</th><th>Email</th><th>Papel</th><th>Status</th><th>Detalhe</th></tr></thead>
+          <tbody>${linhasHtml}</tbody>
+        </table>
+      </div>`;
+    toast("Importação concluída", "sucesso");
+  } catch (e){
+    console.error(e);
+    toast("Erro ao ler a planilha: " + e.message, "erro");
+  } finally {
+    hideLoading();
+    ev.target.value = "";
+  }
+}
+
+function renderAdminUsuarios(){
+  const conteudo = document.getElementById("conteudo");
+  conteudo.innerHTML = `<div class="card"><h2>Usuários</h2><div class="table-container" id="tabela-usuarios">Carregando...</div></div>`;
+  const unsub = db.collection("users").orderBy("name").onSnapshot(snap => {
+    const linhas = snap.docs.map(doc => {
+      const u = doc.data();
+      return `
+        <tr>
+          <td>${escapeHtml(u.name)}</td>
+          <td>${escapeHtml(u.email)}</td>
+          <td>
+            <select data-uid="${doc.id}" class="select-papel">
+              <option value="aluno" ${u.role==="aluno"?"selected":""}>aluno</option>
+              <option value="professor" ${u.role==="professor"?"selected":""}>professor</option>
+              <option value="admin" ${u.role==="admin"?"selected":""}>admin</option>
+            </select>
+          </td>
+          <td>${fmtData(u.criadoEm)}</td>
+        </tr>`;
+    }).join("");
+    document.getElementById("tabela-usuarios").innerHTML = `
+      <table>
+        <thead><tr><th>Nome</th><th>Email</th><th>Papel</th><th>Criado em</th></tr></thead>
+        <tbody>${linhas || `<tr><td colspan="4">Nenhum usuário ainda.</td></tr>`}</tbody>
+      </table>`;
+    document.querySelectorAll(".select-papel").forEach(sel => {
+      sel.addEventListener("change", async () => {
+        await db.collection("users").doc(sel.dataset.uid).update({ role: sel.value });
+        toast("Papel atualizado", "sucesso");
+      });
+    });
+  });
+  activeUnsubs.push(unsub);
+}
+
+function renderAdminTurmas(){
+  const conteudo = document.getElementById("conteudo");
+  conteudo.innerHTML = `<div class="card"><h2>Todas as turmas</h2><div class="table-container" id="tabela-turmas-admin">Carregando...</div></div>`;
+  const unsub = db.collection("turmas").orderBy("criadoEm", "desc").onSnapshot(snap => {
+    const linhas = snap.docs.map(doc => {
+      const t = doc.data();
+      return `<tr><td>${escapeHtml(t.nome)}</td><td>${escapeHtml(t.professorNome)}</td><td><span class="codigo">${escapeHtml(t.codigo)}</span></td><td>${fmtData(t.criadoEm)}</td></tr>`;
+    }).join("");
+    document.getElementById("tabela-turmas-admin").innerHTML = `
+      <table>
+        <thead><tr><th>Turma</th><th>Professor(a)</th><th>Código</th><th>Criada em</th></tr></thead>
+        <tbody>${linhas || `<tr><td colspan="4">Nenhuma turma ainda.</td></tr>`}</tbody>
+      </table>`;
+  });
+  activeUnsubs.push(unsub);
+}
+
+function renderAjuda(){
+  document.getElementById("conteudo").innerHTML = `
+    <div class="card">
+      <h2>Configuração e manutenção</h2>
+      <p>Estas mesmas instruções ficam disponíveis na tela de configuração inicial (antes de conectar o Firebase). Use-as como referência para revisar regras de segurança ou reconfigurar o backup no Drive.</p>
+      <h3>Regras do Firestore</h3>
+      <textarea class="codigo-copia" readonly>${escapeHtml(regrasFirestoreTexto())}</textarea>
+      <h3>Regras do Storage</h3>
+      <textarea class="codigo-copia" readonly>${escapeHtml(regrasStorageTexto())}</textarea>
+      <h3>Script de backup no Google Drive (Apps Script)</h3>
+      <textarea class="codigo-copia" readonly>${escapeHtml(appsScriptTexto())}</textarea>
+    </div>`;
+}
+
+/* ======================================================================
+   6. PROFESSOR
+   ====================================================================== */
+
+function renderProfessorTurmas(){
+  if (selectedTurmaId) return renderProfessorTurmaDetalhe();
+  const conteudo = document.getElementById("conteudo");
+  conteudo.innerHTML = `
+    <div class="card">
+      <h2>Nova turma</h2>
+      <div class="linha-form">
+        <div><label>Nome da turma</label><input type="text" id="input-nome-turma" placeholder="Ex: Estágio Supervisionado I - 2026.1"></div>
+        <div style="flex:0;"><button class="btn" id="btn-criar-turma">Criar turma</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Minhas turmas</h2>
+      <div class="grid-cards" id="grid-turmas-professor">Carregando...</div>
+    </div>`;
+
+  document.getElementById("btn-criar-turma").addEventListener("click", async () => {
+    const nome = document.getElementById("input-nome-turma").value.trim();
+    if (!nome) return toast("Informe o nome da turma", "erro");
+    showLoading();
+    try {
+      await criarTurmaComCodigoUnico(nome);
+      toast("Turma criada com sucesso", "sucesso");
+      document.getElementById("input-nome-turma").value = "";
+    } catch (e){
+      toast(e.message, "erro");
+    } finally { hideLoading(); }
+  });
+
+  const unsub = db.collection("turmas").where("professorId", "==", currentUser.uid).onSnapshot(snap => {
+    const cards = snap.docs.map(doc => {
+      const t = doc.data();
+      return `
+        <div class="turma-card" data-id="${doc.id}">
+          <h3>${escapeHtml(t.nome)}</h3>
+          <p>Código: <span class="codigo">${escapeHtml(t.codigo)}</span></p>
+          <p style="font-size:.8em;color:#888;">Criada em ${fmtData(t.criadoEm)}</p>
+        </div>`;
+    }).join("");
+    document.getElementById("grid-turmas-professor").innerHTML = cards || "<p>Você ainda não criou nenhuma turma.</p>";
+    document.querySelectorAll("#grid-turmas-professor .turma-card").forEach(card => {
+      card.addEventListener("click", () => { selectedTurmaId = card.dataset.id; renderProfessorTurmaDetalhe(); });
+    });
+  });
+  activeUnsubs.push(unsub);
+}
+
+async function criarTurmaComCodigoUnico(nome){
+  for (let tentativa = 0; tentativa < 10; tentativa++){
+    const codigo = gerarCodigoTurma();
+    const existente = await db.collection("turmas").where("codigo", "==", codigo).limit(1).get();
+    if (existente.empty){
+      const ref = await db.collection("turmas").add({
+        nome, professorId: currentUser.uid, professorNome: currentUser.name, codigo, criadoEm: serverTs()
+      });
+      return ref.id;
+    }
+  }
+  throw new Error("Não foi possível gerar um código único para a turma. Tente novamente.");
+}
+
+function renderProfessorTurmaDetalhe(){
+  clearUnsubs();
+  const conteudo = document.getElementById("conteudo");
+  conteudo.innerHTML = `
+    <button class="voltar-link" id="btn-voltar-turma">← Voltar para minhas turmas</button>
+    <div class="card" id="cabecalho-turma">Carregando...</div>
+    <div class="card">
+      <h2>Solicitações pendentes</h2>
+      <div class="table-container" id="tabela-solicitacoes">Carregando...</div>
+    </div>
+    <div class="card">
+      <h2>Adicionar aluno diretamente</h2>
+      <div class="linha-form">
+        <div><label>Nome do aluno</label><input type="text" id="input-nome-aluno"></div>
+        <div><label>Email do aluno</label><input type="email" id="input-email-aluno"></div>
+        <div style="flex:0;"><button class="btn" id="btn-add-aluno">Adicionar</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Alunos e documentos</h2>
+      <div class="table-container" id="tabela-documentos">Carregando...</div>
+    </div>`;
+
+  document.getElementById("btn-voltar-turma").addEventListener("click", () => { selectedTurmaId = null; renderProfessorTurmas(); });
+
+  document.getElementById("btn-add-aluno").addEventListener("click", async () => {
+    const nome = document.getElementById("input-nome-aluno").value.trim();
+    const email = document.getElementById("input-email-aluno").value.trim().toLowerCase();
+    if (!nome || !emailValido(email)) return toast("Informe nome e e-mail válidos", "erro");
+    showLoading();
+    try {
+      await adicionarAlunoNaTurma(selectedTurmaId, nome, email);
+      toast("Aluno adicionado à turma", "sucesso");
+      document.getElementById("input-nome-aluno").value = "";
+      document.getElementById("input-email-aluno").value = "";
+    } catch (e){
+      toast(e.message, "erro");
+    } finally { hideLoading(); }
+  });
+
+  db.collection("turmas").doc(selectedTurmaId).get().then(doc => {
+    if (!doc.exists){ toast("Turma não encontrada", "erro"); selectedTurmaId = null; return renderProfessorTurmas(); }
+    cacheTurma = doc.data();
+    document.getElementById("cabecalho-turma").innerHTML = `
+      <h2>${escapeHtml(cacheTurma.nome)}</h2>
+      <p>Código para os alunos entrarem: <span class="codigo">${escapeHtml(cacheTurma.codigo)}</span></p>`;
+  });
+
+  cacheMatriculas = [];
+  cacheDocumentos = {};
+
+  const unsubMat = db.collection("matriculas").where("turmaId", "==", selectedTurmaId).onSnapshot(snap => {
+    cacheMatriculas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderSolicitacoesPendentes();
+    renderMatrizDocumentos();
+  });
+  const unsubDocs = db.collection("documentos").where("turmaId", "==", selectedTurmaId).onSnapshot(snap => {
+    cacheDocumentos = {};
+    snap.forEach(d => { const doc = d.data(); cacheDocumentos[doc.alunoEmail + "_" + doc.tipo] = { id: d.id, ...doc }; });
+    renderMatrizDocumentos();
+  });
+  activeUnsubs.push(unsubMat, unsubDocs);
+}
+
+function renderSolicitacoesPendentes(){
+  const pendentes = cacheMatriculas.filter(m => m.status === "pendente");
+  const linhas = pendentes.map(m => `
+    <tr>
+      <td>${escapeHtml(m.alunoNome)}</td>
+      <td>${escapeHtml(m.alunoEmail)}</td>
+      <td>${fmtData(m.criadoEm)}</td>
+      <td class="btn-group">
+        <button class="btn sucesso pequeno btn-aprovar" data-id="${m.id}">Aprovar</button>
+        <button class="btn perigo pequeno btn-recusar" data-id="${m.id}">Recusar</button>
+      </td>
+    </tr>`).join("");
+  const container = document.getElementById("tabela-solicitacoes");
+  if (!container) return;
+  container.innerHTML = `
+    <table>
+      <thead><tr><th>Nome</th><th>Email</th><th>Solicitado em</th><th>Ação</th></tr></thead>
+      <tbody>${linhas || `<tr><td colspan="4">Nenhuma solicitação pendente.</td></tr>`}</tbody>
+    </table>`;
+  container.querySelectorAll(".btn-aprovar").forEach(b => b.addEventListener("click", () => responderSolicitacao(b.dataset.id, true)));
+  container.querySelectorAll(".btn-recusar").forEach(b => b.addEventListener("click", () => responderSolicitacao(b.dataset.id, false)));
+}
+
+async function responderSolicitacao(matriculaId, aprovado){
+  showLoading();
+  try {
+    await db.collection("matriculas").doc(matriculaId).update({
+      status: aprovado ? "aprovado" : "recusado", respondidoEm: serverTs()
+    });
+    toast(aprovado ? "Aluno aprovado na turma" : "Solicitação recusada", "sucesso");
+  } catch (e){ toast(e.message, "erro"); }
+  finally { hideLoading(); }
+}
+
+async function adicionarAlunoNaTurma(turmaId, nome, emailLower){
+  const matriculaRef = db.collection("matriculas").doc(turmaId + "_" + emailLower);
+  await matriculaRef.set({
+    turmaId, turmaNome: cacheTurma ? cacheTurma.nome : "", alunoEmail: emailLower, alunoNome: nome,
+    status: "aprovado", origem: "professor", criadoEm: serverTs(), respondidoEm: serverTs()
+  }, { merge: true });
+  await db.collection("invites").doc(emailLower).set({ name: nome, role: "aluno", criadoEm: serverTs() }, { merge: true });
+}
+
+function renderMatrizDocumentos(){
+  const container = document.getElementById("tabela-documentos");
+  if (!container) return;
+  const aprovados = cacheMatriculas.filter(m => m.status === "aprovado");
+  const linhas = aprovados.map(m => {
+    const celulas = TIPOS_DOCUMENTO.map(tipo => {
+      const doc = cacheDocumentos[m.alunoEmail + "_" + tipo.id];
+      const status = doc ? doc.status : "pendente";
+      const info = STATUS_DOC_INFO[status];
+      const link = doc && doc.arquivoURL ? `<br><a href="${escapeHtml(doc.arquivoURL)}" target="_blank" rel="noopener">ver arquivo</a>` : "";
+      const acoes = (doc && status === "enviado") ? `
+        <div class="btn-group" style="margin-top:6px;">
+          <button class="btn sucesso pequeno btn-validar" data-id="${doc.id}">Validar</button>
+          <button class="btn perigo pequeno btn-rejeitar" data-id="${doc.id}">Rejeitar</button>
+        </div>` : "";
+      return `<td>${badge(info)}${link}${acoes}</td>`;
+    }).join("");
+    return `<tr><td>${escapeHtml(m.alunoNome)}<br><span style="color:#888;font-size:.8em;">${escapeHtml(m.alunoEmail)}</span></td>${celulas}</tr>`;
+  }).join("");
+
+  container.innerHTML = `
+    <table>
+      <thead><tr><th>Aluno</th>${TIPOS_DOCUMENTO.map(t => `<th>${escapeHtml(t.nome)}</th>`).join("")}</tr></thead>
+      <tbody>${linhas || `<tr><td colspan="${TIPOS_DOCUMENTO.length + 1}">Nenhum aluno matriculado ainda.</td></tr>`}</tbody>
+    </table>`;
+
+  container.querySelectorAll(".btn-validar").forEach(b => b.addEventListener("click", () => validarDocumento(b.dataset.id, true)));
+  container.querySelectorAll(".btn-rejeitar").forEach(b => b.addEventListener("click", () => validarDocumento(b.dataset.id, false)));
+}
+
+async function validarDocumento(documentoId, aprovado){
+  let observacao = "";
+  if (!aprovado){
+    observacao = prompt("Motivo da rejeição (o aluno verá esta mensagem):") || "";
+  }
+  showLoading();
+  try {
+    await db.collection("documentos").doc(documentoId).update({
+      status: aprovado ? "validado" : "rejeitado",
+      validadoPor: currentUser.name,
+      validadoEm: serverTs(),
+      observacao
+    });
+    toast(aprovado ? "Documento validado" : "Documento rejeitado", "sucesso");
+  } catch (e){ toast(e.message, "erro"); }
+  finally { hideLoading(); }
+}
+
+/* ======================================================================
+   7. ALUNO
+   ====================================================================== */
+
+function renderAlunoTurmas(){
+  if (selectedTurmaId) return renderAlunoTurmaDetalhe();
+  const conteudo = document.getElementById("conteudo");
+  conteudo.innerHTML = `
+    <div class="card">
+      <h2>Entrar em uma turma</h2>
+      <div class="linha-form">
+        <div><label>Código da turma (fornecido pelo professor)</label><input type="text" id="input-codigo-turma" placeholder="Ex: AB12CD" style="text-transform:uppercase;"></div>
+        <div style="flex:0;"><button class="btn" id="btn-entrar-turma">Solicitar entrada</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Minhas turmas</h2>
+      <div class="grid-cards" id="grid-turmas-aluno">Carregando...</div>
+    </div>`;
+
+  document.getElementById("btn-entrar-turma").addEventListener("click", async () => {
+    const codigo = document.getElementById("input-codigo-turma").value.trim().toUpperCase();
+    if (!codigo) return toast("Informe o código da turma", "erro");
+    showLoading();
+    try {
+      await solicitarEntradaTurma(codigo);
+      document.getElementById("input-codigo-turma").value = "";
+    } catch (e){
+      toast(e.message, "erro");
+    } finally { hideLoading(); }
+  });
+
+  const unsub = db.collection("matriculas").where("alunoEmail", "==", currentUser.email).onSnapshot(snap => {
+    const cards = snap.docs.map(doc => {
+      const m = doc.data();
+      const info = STATUS_MATRICULA_INFO[m.status];
+      return `
+        <div class="turma-card" data-id="${m.turmaId}" data-status="${m.status}">
+          <h3>${escapeHtml(m.turmaNome)}</h3>
+          ${badge(info)}
+        </div>`;
+    }).join("");
+    document.getElementById("grid-turmas-aluno").innerHTML = cards || "<p>Você ainda não está em nenhuma turma. Peça o código ao seu professor.</p>";
+    document.querySelectorAll("#grid-turmas-aluno .turma-card").forEach(card => {
+      card.addEventListener("click", () => {
+        if (card.dataset.status !== "aprovado"){
+          return toast("Aguarde a aprovação do professor para acessar os documentos desta turma.");
+        }
+        selectedTurmaId = card.dataset.id;
+        renderAlunoTurmaDetalhe();
+      });
+    });
+  });
+  activeUnsubs.push(unsub);
+}
+
+async function solicitarEntradaTurma(codigo){
+  const busca = await db.collection("turmas").where("codigo", "==", codigo).limit(1).get();
+  if (busca.empty) throw new Error("Código de turma inválido.");
+  const turmaDoc = busca.docs[0];
+  const turmaId = turmaDoc.id;
+  const matriculaRef = db.collection("matriculas").doc(turmaId + "_" + currentUser.email);
+  const existente = await matriculaRef.get();
+  if (existente.exists){
+    const status = existente.data().status;
+    if (status === "pendente") return toast("Você já solicitou entrada nessa turma. Aguarde a aprovação.");
+    if (status === "aprovado") return toast("Você já está matriculado nessa turma.");
+  }
+  await matriculaRef.set({
+    turmaId, turmaNome: turmaDoc.data().nome, alunoEmail: currentUser.email, alunoNome: currentUser.name,
+    status: "pendente", origem: "solicitacao", criadoEm: serverTs()
+  });
+  toast("Solicitação enviada! Aguarde a aprovação do professor.", "sucesso");
+}
+
+function renderAlunoTurmaDetalhe(){
+  clearUnsubs();
+  const conteudo = document.getElementById("conteudo");
+  conteudo.innerHTML = `
+    <button class="voltar-link" id="btn-voltar-turma-aluno">← Voltar para minhas turmas</button>
+    <div class="card" id="cabecalho-turma-aluno">Carregando...</div>
+    <div class="card">
+      <h2>Documentos obrigatórios</h2>
+      <div id="lista-documentos-aluno">Carregando...</div>
+    </div>`;
+  document.getElementById("btn-voltar-turma-aluno").addEventListener("click", () => { selectedTurmaId = null; renderAlunoTurmas(); });
+
+  db.collection("turmas").doc(selectedTurmaId).get().then(doc => {
+    if (doc.exists){
+      document.getElementById("cabecalho-turma-aluno").innerHTML = `<h2>${escapeHtml(doc.data().nome)}</h2>`;
+    }
+  });
+
+  const unsub = db.collection("documentos")
+    .where("turmaId", "==", selectedTurmaId)
+    .where("alunoEmail", "==", currentUser.email)
+    .onSnapshot(snap => {
+      cacheDocumentos = {};
+      snap.forEach(d => { const doc = d.data(); cacheDocumentos[doc.tipo] = { id: d.id, ...doc }; });
+      renderListaDocumentosAluno();
+    });
+  activeUnsubs.push(unsub);
+}
+
+function renderListaDocumentosAluno(){
+  const container = document.getElementById("lista-documentos-aluno");
+  if (!container) return;
+  container.innerHTML = TIPOS_DOCUMENTO.map(tipo => {
+    const doc = cacheDocumentos[tipo.id];
+    const status = doc ? doc.status : "pendente";
+    const info = STATUS_DOC_INFO[status];
+    const travado = status === "validado";
+    const link = doc && doc.arquivoURL ? `<a href="${escapeHtml(doc.arquivoURL)}" target="_blank" rel="noopener" style="font-size:.85em;">ver arquivo enviado</a>` : "";
+    const obs = (status === "rejeitado" && doc && doc.observacao) ? `<div class="aviso" style="margin-top:8px;">Motivo da rejeição: ${escapeHtml(doc.observacao)}</div>` : "";
+    return `
+      <div class="doc-linha">
+        <div class="doc-nome">${escapeHtml(tipo.nome)}<br>${badge(info)} ${link}${obs}</div>
+        <div>
+          ${travado ? "" : `
+            <input type="file" data-tipo="${tipo.id}" class="input-upload-doc" style="max-width:220px;display:inline-block;">
+            <button class="btn pequeno btn-enviar-doc" data-tipo="${tipo.id}">Enviar</button>
+          `}
+        </div>
+      </div>`;
+  }).join("");
+
+  container.querySelectorAll(".btn-enviar-doc").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tipo = btn.dataset.tipo;
+      const input = container.querySelector(`.input-upload-doc[data-tipo="${tipo}"]`);
+      if (!input.files[0]) return toast("Selecione um arquivo primeiro", "erro");
+      enviarDocumento(tipo, input.files[0]);
+    });
+  });
+}
+
+async function enviarDocumento(tipo, file){
+  showLoading();
+  try {
+    const caminho = `documentos/${selectedTurmaId}/${currentUser.email}/${tipo}_${Date.now()}_${file.name}`;
+    const ref = storage.ref(caminho);
+    await ref.put(file);
+    const url = await ref.getDownloadURL();
+
+    const docId = `${selectedTurmaId}_${currentUser.email}_${tipo}`;
+    await db.collection("documentos").doc(docId).set({
+      turmaId: selectedTurmaId, alunoEmail: currentUser.email, alunoNome: currentUser.name, tipo,
+      status: "enviado", arquivoNome: file.name, arquivoURL: url, storagePath: caminho,
+      enviadoEm: serverTs(), observacao: ""
+    }, { merge: true });
+
+    toast("Documento enviado! Aguardando validação do professor.", "sucesso");
+    backupParaDrive(file, { tipo, turmaNome: cacheTurma ? cacheTurma.nome : selectedTurmaId, alunoNome: currentUser.name });
+  } catch (e){
+    console.error(e);
+    toast("Erro ao enviar documento: " + e.message, "erro");
+  } finally { hideLoading(); }
+}
+
+function backupParaDrive(file, meta){
+  if (!DRIVE_BACKUP_WEBAPP_URL) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const base64 = reader.result.split(",")[1];
+    fetch(DRIVE_BACKUP_WEBAPP_URL, {
+      method: "POST",
+      mode: "no-cors",
+      body: JSON.stringify({
+        filename: file.name, mimeType: file.type || "application/octet-stream", data: base64,
+        tipo: meta.tipo, turmaNome: meta.turmaNome, alunoNome: meta.alunoNome
+      })
+    }).catch(() => { /* backup é best-effort, o Firebase Storage já é a cópia oficial */ });
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ======================================================================
+   8. TEXTOS DE AJUDA (regras / apps script)
+   ====================================================================== */
+
+function regrasFirestoreTexto(){
+  return `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function logado() { return request.auth != null; }
+    function meuPapel() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    function souAdmin() { return logado() && meuPapel() == 'admin'; }
+    function souProfessor() { return logado() && meuPapel() == 'professor'; }
+
+    match /users/{uid} {
+      allow read: if logado();
+      allow create: if logado() && request.auth.uid == uid;
+      allow update: if logado() && (request.auth.uid == uid || souAdmin());
+    }
+
+    match /invites/{email} {
+      allow read: if logado();
+      allow write: if souAdmin();
+    }
+
+    match /turmas/{turmaId} {
+      allow read: if logado();
+      allow create: if souProfessor();
+      allow update, delete: if souProfessor() && resource.data.professorId == request.auth.uid;
+    }
+
+    match /matriculas/{matriculaId} {
+      allow read: if logado();
+      allow create: if logado();
+      allow update: if souProfessor() || (logado() && resource.data.alunoEmail == request.auth.token.email);
+    }
+
+    match /documentos/{documentoId} {
+      allow read: if logado();
+      allow create, update: if logado();
+    }
+  }
+}`;
+}
+
+function regrasStorageTexto(){
+  return `rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /documentos/{turmaId}/{alunoEmail}/{arquivo} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}`;
+}
+
+function appsScriptTexto(){
+  return `const DRIVE_FOLDER_ID = 'COLOQUE_AQUI_O_ID_DA_PASTA_NO_SEU_DRIVE';
+
+function doPost(e) {
+  try {
+    const body = JSON.parse(e.postData.contents);
+    const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+    const nomeSubpasta = (body.turmaNome || 'Turma') + ' - ' + (body.alunoNome || 'Aluno');
+    const subFolder = getOrCreateFolder(folder, nomeSubpasta);
+    const bytes = Utilities.base64Decode(body.data);
+    const blob = Utilities.newBlob(bytes, body.mimeType, body.filename);
+    subFolder.createFile(blob);
+    return ContentService.createTextOutput(JSON.stringify({ ok: true }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function getOrCreateFolder(parent, nome) {
+  const it = parent.getFoldersByName(nome);
+  if (it.hasNext()) return it.next();
+  return parent.createFolder(nome);
+}`;
+}
+
+/* ======================================================================
+   9. INICIALIZAÇÃO DA PÁGINA
+   ====================================================================== */
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (!isFirebaseConfigured()){
+    document.getElementById("txt-regras-firestore").value = regrasFirestoreTexto();
+    document.getElementById("txt-regras-storage").value = regrasStorageTexto();
+    document.getElementById("txt-apps-script").value = appsScriptTexto();
+    document.getElementById("tela-setup").classList.remove("hidden");
+    return;
+  }
+  document.getElementById("btn-login-google").addEventListener("click", signInGoogle);
+  document.getElementById("btn-login-microsoft").addEventListener("click", signInMicrosoft);
+  document.getElementById("btn-logout").addEventListener("click", () => auth.signOut());
+  initFirebase();
+});
+</script>
+</body>
+</html>

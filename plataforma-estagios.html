@@ -354,7 +354,6 @@ async function resolveUserProfile(user){
   if (inviteSnap.exists){
     role = inviteSnap.data().role || "aluno";
     name = inviteSnap.data().name || name;
-    await inviteRef.set({ usado: true, usadoEm: serverTs() }, { merge: true });
   } else if (ADMIN_EMAILS.includes(emailLower)){
     role = "admin";
   } else {

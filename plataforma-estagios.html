@@ -322,7 +322,11 @@ async function onAuthChange(user){
     renderNav();
   } catch (e){
     console.error(e);
-    toast("Erro ao carregar seu perfil: " + e.message, "erro");
+    if (e.message === "CONTA_BLOQUEADA"){
+      toast("Sua conta foi bloqueada. Entre em contato com o administrador.", "erro");
+    } else {
+      toast("Erro ao carregar seu perfil: " + e.message, "erro");
+    }
     auth.signOut();
   } finally {
     hideLoading();
@@ -338,6 +342,7 @@ async function resolveUserProfile(user){
 
   if (snap.exists){
     const data = snap.data();
+    if (data.status === "bloqueado") throw new Error("CONTA_BLOQUEADA");
     return { uid: user.uid, email: emailLower, name: data.name || user.displayName || nomeCadastro || emailLower, role: data.role };
   }
 
@@ -356,7 +361,7 @@ async function resolveUserProfile(user){
     role = "aluno"; // autocadastro
   }
 
-  await userRef.set({ name, email: emailLower, role, criadoEm: serverTs() });
+  await userRef.set({ name, email: emailLower, role, status: "ativo", criadoEm: serverTs() });
   return { uid: user.uid, email: emailLower, name, role };
 }
 
@@ -549,14 +554,7 @@ async function handleExcelFile(ev){
         continue;
       }
       try {
-        await db.collection("invites").doc(email).set({
-          name: nome, role: papel, criadoEm: serverTs(), criadoPor: currentUser.uid, usado: false
-        }, { merge: true });
-
-        const usuarioExistente = await db.collection("users").where("email", "==", email).limit(1).get();
-        if (!usuarioExistente.empty){
-          await usuarioExistente.docs[0].ref.update({ role: papel, name: nome });
-        }
+        await criarOuAtualizarConvite(nome, email, papel);
         resultados.push({ nome, email, papel, ok: true, motivo: "Importado" });
       } catch (e){
         resultados.push({ nome, email, papel, ok: false, motivo: e.message });
@@ -590,35 +588,115 @@ async function handleExcelFile(ev){
   }
 }
 
+async function criarOuAtualizarConvite(nome, email, papel){
+  await db.collection("invites").doc(email).set({
+    name: nome, role: papel, criadoEm: serverTs(), criadoPor: currentUser.uid, usado: false
+  }, { merge: true });
+
+  const usuarioExistente = await db.collection("users").where("email", "==", email).limit(1).get();
+  if (!usuarioExistente.empty){
+    await usuarioExistente.docs[0].ref.update({ role: papel, name: nome });
+  }
+}
+
 function renderAdminUsuarios(){
   const conteudo = document.getElementById("conteudo");
-  conteudo.innerHTML = `<div class="card"><h2>Usuários</h2><div class="table-container" id="tabela-usuarios">Carregando...</div></div>`;
+  conteudo.innerHTML = `
+    <div class="card">
+      <h2>Criar usuário</h2>
+      <div class="info-box">Cria o cadastro na hora. A pessoa só precisa entrar com Google ou criar uma conta com esse mesmo e-mail para o acesso ser liberado com o papel escolhido.</div>
+      <div class="linha-form">
+        <div><label>Nome completo</label><input type="text" id="input-nome-novo-usuario"></div>
+        <div><label>Email</label><input type="email" id="input-email-novo-usuario"></div>
+        <div>
+          <label>Papel</label>
+          <select id="select-papel-novo-usuario">
+            <option value="aluno">aluno</option>
+            <option value="professor">professor</option>
+            <option value="admin">admin</option>
+          </select>
+        </div>
+        <div style="flex:0;"><button class="btn" id="btn-criar-usuario">Criar</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Usuários</h2>
+      <div class="table-container" id="tabela-usuarios">Carregando...</div>
+    </div>`;
+
+  document.getElementById("btn-criar-usuario").addEventListener("click", async () => {
+    const nome = document.getElementById("input-nome-novo-usuario").value.trim();
+    const email = document.getElementById("input-email-novo-usuario").value.trim().toLowerCase();
+    const papel = document.getElementById("select-papel-novo-usuario").value;
+    if (!nome) return toast("Informe o nome", "erro");
+    if (!emailValido(email)) return toast("Informe um e-mail válido", "erro");
+    showLoading();
+    try {
+      await criarOuAtualizarConvite(nome, email, papel);
+      toast("Usuário criado/atualizado com sucesso", "sucesso");
+      document.getElementById("input-nome-novo-usuario").value = "";
+      document.getElementById("input-email-novo-usuario").value = "";
+    } catch (e){
+      toast(e.message, "erro");
+    } finally { hideLoading(); }
+  });
+
   const unsub = db.collection("users").orderBy("name").onSnapshot(snap => {
     const linhas = snap.docs.map(doc => {
       const u = doc.data();
+      const bloqueado = u.status === "bloqueado";
+      const souEuMesmo = doc.id === currentUser.uid;
       return `
         <tr>
           <td>${escapeHtml(u.name)}</td>
           <td>${escapeHtml(u.email)}</td>
           <td>
-            <select data-uid="${doc.id}" class="select-papel">
+            <select data-uid="${doc.id}" class="select-papel" ${souEuMesmo ? "disabled" : ""}>
               <option value="aluno" ${u.role==="aluno"?"selected":""}>aluno</option>
               <option value="professor" ${u.role==="professor"?"selected":""}>professor</option>
               <option value="admin" ${u.role==="admin"?"selected":""}>admin</option>
             </select>
           </td>
+          <td>${bloqueado ? badge({label:"Bloqueado",cor:"#e74c3c"}) : badge({label:"Ativo",cor:"#27ae60"})}</td>
           <td>${fmtData(u.criadoEm)}</td>
+          <td class="btn-group">
+            ${souEuMesmo ? "<span style=\"color:#999;font-size:.8em;\">é você</span>" : `
+              <button class="btn ${bloqueado ? "sucesso" : "secundario"} pequeno btn-toggle-bloqueio" data-uid="${doc.id}" data-bloqueado="${bloqueado}">${bloqueado ? "Reativar" : "Bloquear"}</button>
+              <button class="btn perigo pequeno btn-excluir-usuario" data-uid="${doc.id}" data-nome="${escapeHtml(u.name)}">Excluir</button>
+            `}
+          </td>
         </tr>`;
     }).join("");
     document.getElementById("tabela-usuarios").innerHTML = `
       <table>
-        <thead><tr><th>Nome</th><th>Email</th><th>Papel</th><th>Criado em</th></tr></thead>
-        <tbody>${linhas || `<tr><td colspan="4">Nenhum usuário ainda.</td></tr>`}</tbody>
+        <thead><tr><th>Nome</th><th>Email</th><th>Papel</th><th>Status</th><th>Criado em</th><th>Ação</th></tr></thead>
+        <tbody>${linhas || `<tr><td colspan="6">Nenhum usuário ainda.</td></tr>`}</tbody>
       </table>`;
+
     document.querySelectorAll(".select-papel").forEach(sel => {
       sel.addEventListener("change", async () => {
         await db.collection("users").doc(sel.dataset.uid).update({ role: sel.value });
         toast("Papel atualizado", "sucesso");
+      });
+    });
+    document.querySelectorAll(".btn-toggle-bloqueio").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const bloqueadoAtualmente = btn.dataset.bloqueado === "true";
+        await db.collection("users").doc(btn.dataset.uid).update({ status: bloqueadoAtualmente ? "ativo" : "bloqueado" });
+        toast(bloqueadoAtualmente ? "Usuário reativado" : "Usuário bloqueado", "sucesso");
+      });
+    });
+    document.querySelectorAll(".btn-excluir-usuario").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const ok = confirm(`Excluir o cadastro de "${btn.dataset.nome}"?\n\nIsso remove o perfil e o acesso dentro da plataforma. Não é possível apagar a conta de login (Google/e-mail) em si por aqui — se a pessoa entrar de novo, será tratada como um cadastro novo.`);
+        if (!ok) return;
+        showLoading();
+        try {
+          await db.collection("users").doc(btn.dataset.uid).delete();
+          toast("Usuário excluído", "sucesso");
+        } catch (e){
+          toast(e.message, "erro");
+        } finally { hideLoading(); }
       });
     });
   });
@@ -1067,16 +1145,18 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     function logado() { return request.auth != null; }
-    function meuPapel() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    function meuUsuario() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
-    function souAdmin() { return logado() && meuPapel() == 'admin'; }
-    function souProfessor() { return logado() && meuPapel() == 'professor'; }
+    function souAdmin() { return logado() && meuUsuario().role == 'admin'; }
+    function souProfessor() { return logado() && meuUsuario().role == 'professor'; }
+    function estouAtivo() { return logado() && meuUsuario().get('status', 'ativo') != 'bloqueado'; }
 
     match /users/{uid} {
       allow read: if logado();
       allow create: if logado() && request.auth.uid == uid;
       allow update: if logado() && (request.auth.uid == uid || souAdmin());
+      allow delete: if souAdmin();
     }
 
     match /invites/{email} {
@@ -1085,19 +1165,19 @@ service cloud.firestore {
     }
 
     match /turmas/{turmaId} {
-      allow read: if logado();
+      allow read: if logado() && estouAtivo();
       allow create, update, delete: if souAdmin();
     }
 
     match /matriculas/{matriculaId} {
-      allow read: if logado();
-      allow create: if logado() && request.resource.data.alunoEmail == request.auth.token.email;
-      allow update: if souProfessor() || (logado() && resource.data.alunoEmail == request.auth.token.email);
+      allow read: if logado() && estouAtivo();
+      allow create: if logado() && estouAtivo() && request.resource.data.alunoEmail == request.auth.token.email;
+      allow update: if (souProfessor() && estouAtivo()) || (logado() && estouAtivo() && resource.data.alunoEmail == request.auth.token.email);
     }
 
     match /documentos/{documentoId} {
-      allow read: if logado();
-      allow create, update: if logado();
+      allow read: if logado() && estouAtivo();
+      allow create, update: if logado() && estouAtivo();
     }
   }
 }`;

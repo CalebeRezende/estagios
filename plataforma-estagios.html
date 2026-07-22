@@ -703,6 +703,7 @@ function renderAdminUsuarios(){
 }
 
 function renderAdminTurmas(){
+  if (selectedTurmaId) return renderTurmaDetalhe();
   const conteudo = document.getElementById("conteudo");
   conteudo.innerHTML = `
     <div class="card">
@@ -740,13 +741,17 @@ function renderAdminTurmas(){
   const unsub = db.collection("turmas").orderBy("criadoEm", "desc").onSnapshot(snap => {
     const linhas = snap.docs.map(doc => {
       const t = doc.data();
-      return `<tr><td>${escapeHtml(t.nome)}</td><td>${escapeHtml(t.professorNome)}</td><td><span class="codigo">${escapeHtml(t.codigo)}</span></td><td>${fmtData(t.criadoEm)}</td></tr>`;
+      return `<tr class="linha-turma-admin" data-id="${doc.id}" style="cursor:pointer;"><td>${escapeHtml(t.nome)}</td><td>${escapeHtml(t.professorNome)}</td><td><span class="codigo">${escapeHtml(t.codigo)}</span></td><td>${fmtData(t.criadoEm)}</td></tr>`;
     }).join("");
     document.getElementById("tabela-turmas-admin").innerHTML = `
       <table>
         <thead><tr><th>Turma</th><th>Professor(a)</th><th>Código</th><th>Criada em</th></tr></thead>
         <tbody>${linhas || `<tr><td colspan="4">Nenhuma turma ainda.</td></tr>`}</tbody>
-      </table>`;
+      </table>
+      <p style="font-size:.8em;color:#888;margin-top:8px;">Clique numa turma para ver solicitações e validar documentos.</p>`;
+    document.querySelectorAll(".linha-turma-admin").forEach(row => {
+      row.addEventListener("click", () => { selectedTurmaId = row.dataset.id; renderTurmaDetalhe(); });
+    });
   });
   activeUnsubs.push(unsub);
 }
@@ -779,11 +784,11 @@ function renderAjuda(){
 }
 
 /* ======================================================================
-   6. PROFESSOR
+   6. PROFESSOR (tela de detalhe da turma também é usada pelo admin)
    ====================================================================== */
 
 function renderProfessorTurmas(){
-  if (selectedTurmaId) return renderProfessorTurmaDetalhe();
+  if (selectedTurmaId) return renderTurmaDetalhe();
   const conteudo = document.getElementById("conteudo");
   conteudo.innerHTML = `
     <div class="card">
@@ -803,7 +808,7 @@ function renderProfessorTurmas(){
     }).join("");
     document.getElementById("grid-turmas-professor").innerHTML = cards || "<p>Nenhuma turma foi atribuída a você ainda. Peça ao administrador para criar e vincular uma turma ao seu usuário.</p>";
     document.querySelectorAll("#grid-turmas-professor .turma-card").forEach(card => {
-      card.addEventListener("click", () => { selectedTurmaId = card.dataset.id; renderProfessorTurmaDetalhe(); });
+      card.addEventListener("click", () => { selectedTurmaId = card.dataset.id; renderTurmaDetalhe(); });
     });
   });
   activeUnsubs.push(unsub);
@@ -823,11 +828,17 @@ async function criarTurmaComCodigoUnico(nome, professorId, professorNome){
   throw new Error("Não foi possível gerar um código único para a turma. Tente novamente.");
 }
 
-function renderProfessorTurmaDetalhe(){
+function voltarParaListaDeTurmas(){
+  selectedTurmaId = null;
+  if (currentUser.role === "admin") renderAdminTurmas();
+  else renderProfessorTurmas();
+}
+
+function renderTurmaDetalhe(){
   clearUnsubs();
   const conteudo = document.getElementById("conteudo");
   conteudo.innerHTML = `
-    <button class="voltar-link" id="btn-voltar-turma">← Voltar para minhas turmas</button>
+    <button class="voltar-link" id="btn-voltar-turma">← Voltar para as turmas</button>
     <div class="card" id="cabecalho-turma">Carregando...</div>
     <div class="card">
       <h2>Solicitações pendentes</h2>
@@ -838,10 +849,10 @@ function renderProfessorTurmaDetalhe(){
       <div class="table-container" id="tabela-documentos">Carregando...</div>
     </div>`;
 
-  document.getElementById("btn-voltar-turma").addEventListener("click", () => { selectedTurmaId = null; renderProfessorTurmas(); });
+  document.getElementById("btn-voltar-turma").addEventListener("click", voltarParaListaDeTurmas);
 
   db.collection("turmas").doc(selectedTurmaId).get().then(doc => {
-    if (!doc.exists){ toast("Turma não encontrada", "erro"); selectedTurmaId = null; return renderProfessorTurmas(); }
+    if (!doc.exists){ toast("Turma não encontrada", "erro"); voltarParaListaDeTurmas(); return; }
     cacheTurma = doc.data();
     document.getElementById("cabecalho-turma").innerHTML = `
       <h2>${escapeHtml(cacheTurma.nome)}</h2>
@@ -1171,7 +1182,7 @@ service cloud.firestore {
     match /matriculas/{matriculaId} {
       allow read: if logado() && estouAtivo();
       allow create: if logado() && estouAtivo() && request.resource.data.alunoEmail == request.auth.token.email;
-      allow update: if (souProfessor() && estouAtivo()) || (logado() && estouAtivo() && resource.data.alunoEmail == request.auth.token.email);
+      allow update: if estouAtivo() && (souProfessor() || souAdmin() || resource.data.alunoEmail == request.auth.token.email);
     }
 
     match /documentos/{documentoId} {

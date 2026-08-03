@@ -719,9 +719,21 @@ function renderAdminTurmas(){
       <h2>Nova turma</h2>
       <div class="linha-form">
         <div><label>Nome da turma</label><input type="text" id="input-nome-turma-admin" placeholder="Ex: Estágio Supervisionado I - 2026.1"></div>
-        <div><label>Professor(a) responsável</label><select id="select-professor-turma"><option value="">Carregando...</option></select></div>
+        <div><label>Nome do professor</label><input type="text" id="input-nome-professor-turma"></div>
+        <div><label>Email do professor</label><input type="email" id="input-email-professor-turma"></div>
         <div style="flex:0;"><button class="btn" id="btn-criar-turma-admin">Criar turma</button></div>
       </div>
+      <p style="font-size:.8em;color:#888;">Não precisa que o professor já tenha entrado na plataforma antes — o acesso dele é liberado no primeiro login com esse e-mail.</p>
+    </div>
+    <div class="card">
+      <h2>Importar turmas em lote</h2>
+      <div class="info-box">
+        Cole uma linha por turma, com os campos separados por <b>TAB</b> (funciona colando direto de uma tabela do Word/Excel/Planilhas), nesta ordem:<br>
+        <code>Turno&nbsp;&nbsp;Período&nbsp;&nbsp;Nome da disciplina&nbsp;&nbsp;Nome do professor&nbsp;&nbsp;Email do professor</code>
+      </div>
+      <textarea id="textarea-turmas-lote" rows="8" placeholder="MATUTINO	1º Ano – 1º e 2º Semestres	Práticas Educacionais na 1ª Infância	Elizabeth Sanada Gurgueira	elizabeth@escola.com"></textarea>
+      <button class="btn" id="btn-importar-turmas-lote" style="margin-top:10px;">Importar turmas</button>
+      <div id="resultado-import-turmas" style="margin-top:16px;"></div>
     </div>
     <div class="card">
       <h2>Turmas ativas</h2>
@@ -733,24 +745,26 @@ function renderAdminTurmas(){
       <div class="table-container" id="tabela-turmas-admin-arquivadas">Carregando...</div>
     </div>`;
 
-  carregarProfessoresNoSelect();
-
   document.getElementById("btn-criar-turma-admin").addEventListener("click", async () => {
     const nome = document.getElementById("input-nome-turma-admin").value.trim();
-    const select = document.getElementById("select-professor-turma");
-    const professorId = select.value;
-    const professorNome = professorId ? select.options[select.selectedIndex].text : "";
+    const professorNome = document.getElementById("input-nome-professor-turma").value.trim();
+    const professorEmail = document.getElementById("input-email-professor-turma").value.trim().toLowerCase();
     if (!nome) return toast("Informe o nome da turma", "erro");
-    if (!professorId) return toast("Selecione o professor responsável", "erro");
+    if (!professorNome || !emailValido(professorEmail)) return toast("Informe nome e e-mail válidos do professor", "erro");
     showLoading();
     try {
-      await criarTurmaComCodigoUnico(nome, professorId, professorNome);
+      await criarOuAtualizarConvite(professorNome, professorEmail, "professor");
+      await criarTurmaComCodigoUnico(nome, professorEmail, professorNome);
       toast("Turma criada com sucesso", "sucesso");
       document.getElementById("input-nome-turma-admin").value = "";
+      document.getElementById("input-nome-professor-turma").value = "";
+      document.getElementById("input-email-professor-turma").value = "";
     } catch (e){
       toast(e.message, "erro");
     } finally { hideLoading(); }
   });
+
+  document.getElementById("btn-importar-turmas-lote").addEventListener("click", handleImportarTurmasLote);
 
   const unsub = db.collection("turmas").orderBy("criadoEm", "desc").onSnapshot(snap => {
     const linha = doc => {
@@ -790,19 +804,51 @@ function renderAdminTurmas(){
   activeUnsubs.push(unsub);
 }
 
-async function carregarProfessoresNoSelect(){
-  const select = document.getElementById("select-professor-turma");
-  if (!select) return;
-  const snap = await db.collection("users").where("role", "==", "professor").get();
-  const professores = snap.docs
-    .map(d => ({ id: d.id, nome: d.data().name }))
-    .sort((a, b) => a.nome.localeCompare(b.nome));
-  if (professores.length === 0){
-    select.innerHTML = `<option value="">Nenhum professor cadastrado ainda</option>`;
-    return;
+async function handleImportarTurmasLote(){
+  const texto = document.getElementById("textarea-turmas-lote").value;
+  const linhas = texto.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+  if (linhas.length === 0) return toast("Cole ao menos uma linha", "erro");
+
+  showLoading();
+  const resultados = [];
+  for (const linha of linhas){
+    let campos = linha.split("\t").map(c => c.trim());
+    if (campos.length < 5) campos = linha.split("|").map(c => c.trim());
+    if (campos.length < 5){
+      resultados.push({ nomeTurma: linha, ok: false, motivo: "Esperado 5 campos (Turno, Período, Disciplina, Professor, Email) separados por TAB ou |" });
+      continue;
+    }
+    const [turno, periodo, disciplina, professorNome, professorEmailBruto] = campos;
+    const professorEmail = professorEmailBruto.toLowerCase();
+    const nomeTurma = `${turno} - ${periodo} - ${disciplina}`;
+    if (!professorNome || !emailValido(professorEmail)){
+      resultados.push({ nomeTurma, ok: false, motivo: "E-mail do professor inválido ou ausente" });
+      continue;
+    }
+    try {
+      await criarOuAtualizarConvite(professorNome, professorEmail, "professor");
+      await criarTurmaComCodigoUnico(nomeTurma, professorEmail, professorNome);
+      resultados.push({ nomeTurma, ok: true, motivo: "Criada" });
+    } catch (e){
+      resultados.push({ nomeTurma, ok: false, motivo: e.message });
+    }
   }
-  select.innerHTML = `<option value="">Selecione...</option>` +
-    professores.map(p => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`).join("");
+  hideLoading();
+
+  document.getElementById("resultado-import-turmas").innerHTML = `
+    <p><b>${resultados.filter(r => r.ok).length}</b> de <b>${resultados.length}</b> turmas criadas.</p>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Turma</th><th>Status</th><th>Detalhe</th></tr></thead>
+        <tbody>${resultados.map(r => `
+          <tr>
+            <td>${escapeHtml(r.nomeTurma)}</td>
+            <td>${r.ok ? badge({ label: "OK", cor: "#27ae60" }) : badge({ label: "Erro", cor: "#e74c3c" })}</td>
+            <td>${escapeHtml(r.motivo)}</td>
+          </tr>`).join("")}</tbody>
+      </table>
+    </div>`;
+  toast("Importação de turmas concluída", "sucesso");
 }
 
 function renderAjuda(){
@@ -846,7 +892,7 @@ function renderProfessorTurmas(){
       </details>
     </div>`;
 
-  const unsub = db.collection("turmas").where("professorId", "==", currentUser.uid).onSnapshot(snap => {
+  const unsub = db.collection("turmas").where("professorEmail", "==", currentUser.email).onSnapshot(snap => {
     const ativas = snap.docs.filter(d => d.data().arquivada !== true);
     const arquivadas = snap.docs.filter(d => d.data().arquivada === true);
 
@@ -862,13 +908,13 @@ function renderProfessorTurmas(){
   activeUnsubs.push(unsub);
 }
 
-async function criarTurmaComCodigoUnico(nome, professorId, professorNome){
+async function criarTurmaComCodigoUnico(nome, professorEmail, professorNome){
   for (let tentativa = 0; tentativa < 10; tentativa++){
     const codigo = gerarCodigoTurma();
     const existente = await db.collection("turmas").where("codigo", "==", codigo).limit(1).get();
     if (existente.empty){
       const ref = await db.collection("turmas").add({
-        nome, professorId, professorNome, codigo, arquivada: false, criadoEm: serverTs(), criadoPor: currentUser.uid
+        nome, professorEmail, professorNome, codigo, arquivada: false, criadoEm: serverTs(), criadoPor: currentUser.uid
       });
       return ref.id;
     }

@@ -115,7 +115,7 @@
       <textarea class="codigo-copia" readonly id="txt-regras-firestore"></textarea>
 
       <h3>3. Armazenamento dos documentos no Google Drive (obrigatório)</h3>
-      <p>Os arquivos enviados pelos alunos (ficha, contrato, etc.) são salvos diretamente no seu Google Drive — não é usado o Firebase Storage. Acesse <a href="https://script.google.com" target="_blank">script.google.com</a>, crie um projeto novo, cole o código abaixo, troque <code>DRIVE_FOLDER_ID</code> pelo ID de uma pasta do seu Drive (crie uma pasta e copie o ID que aparece na URL), implante como "Aplicativo da Web" (Executar como: <b>Eu</b>; Quem pode acessar: <b>Qualquer pessoa</b>) e cole a URL gerada na constante <code>DRIVE_WEBAPP_URL</code> no topo do script deste arquivo HTML.</p>
+      <p>Os arquivos enviados pelos alunos (ficha, contrato, etc.) são salvos diretamente no seu Google Drive — não é usado o Firebase Storage. Acesse <a href="https://script.google.com" target="_blank">script.google.com</a>, crie um projeto novo, cole o código abaixo, e implante como "Aplicativo da Web" (Implantar → Nova implantação → tipo Aplicativo da Web; Executar como: <b>Eu</b>; Quem pode acessar: <b>Qualquer pessoa</b>). Cole a URL gerada na constante <code>DRIVE_WEBAPP_URL</code> no topo do script deste arquivo HTML. Os arquivos vão para a raiz do "Meu Drive" dessa conta, já nomeados com turma/aluno/tipo de documento — importante: use <b>Nova implantação</b>, não apenas "Nova versão" de uma implantação já existente, e mantenha "Quem pode acessar" como <b>Qualquer pessoa</b> (não "Qualquer pessoa com Conta do Google", que quebra o envio pelo navegador).</p>
       <textarea class="codigo-copia" readonly id="txt-apps-script"></textarea>
 
       <p style="margin-top:20px;">Depois de preencher o <code>firebaseConfig</code> e salvar o arquivo, recarregue esta página.</p>
@@ -201,7 +201,7 @@ const ADMIN_EMAILS = ["calebemrnos@gmail.com"];
 // URL do Web App do Google Apps Script usado para salvar os arquivos
 // enviados pelos alunos direto no seu Google Drive (veja a aba "Configuração").
 // Obrigatório para o envio de documentos funcionar.
-const DRIVE_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxWvPiRr5eQKoxoaEWiFGsu-NgGtUXPQvrZiT3aotRdfJlCKok1Iqn5CGCvWYkMvTyr/exec";
+const DRIVE_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzCV1uqSfuvowfbCmuaspNsooiq6j8g4molftovwlqx5wshYa0bAmQyw-LYfqoBjGZK/exec";
 
 const TIPOS_DOCUMENTO = [
   { id: "ficha",    nome: "Ficha de Estágio" },
@@ -1194,18 +1194,17 @@ service cloud.firestore {
 }
 
 function appsScriptTexto(){
-  return `const DRIVE_FOLDER_ID = 'COLOQUE_AQUI_O_ID_DA_PASTA_NO_SEU_DRIVE';
-
-function doPost(e) {
+  return `function doPost(e) {
   try {
     const body = JSON.parse(e.postData.contents);
-    const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
-    const nomeSubpasta = (body.turmaNome || 'Turma') + ' - ' + (body.alunoNome || 'Aluno');
-    const subFolder = getOrCreateFolder(folder, nomeSubpasta);
     const bytes = Utilities.base64Decode(body.data);
-    const blob = Utilities.newBlob(bytes, body.mimeType, body.filename);
-    const file = subFolder.createFile(blob);
-    // Permite que professores/admins abram o link mesmo sem acesso direto à sua conta do Drive
+    const nomeArquivo = (body.turmaNome || 'Turma') + ' - ' + (body.alunoNome || 'Aluno') + ' - ' + (body.tipo || 'documento') + ' - ' + body.filename;
+    const blob = Utilities.newBlob(bytes, body.mimeType, nomeArquivo);
+    // Cria direto na raiz do Meu Drive (sem getFolderById): implantações
+    // anônimas ("Anyone") do Apps Script bloqueiam acesso a pastas
+    // específicas por ID, mas criar arquivo direto funciona normalmente.
+    // Organize movendo os arquivos manualmente, ou revise depois.
+    const file = DriveApp.createFile(blob);
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
     return ContentService.createTextOutput(JSON.stringify({
       ok: true, fileId: file.getId(), fileUrl: file.getUrl()
@@ -1214,12 +1213,6 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
       .setMimeType(ContentService.MimeType.JSON);
   }
-}
-
-function getOrCreateFolder(parent, nome) {
-  const it = parent.getFoldersByName(nome);
-  if (it.hasNext()) return it.next();
-  return parent.createFolder(nome);
 }`;
 }
 

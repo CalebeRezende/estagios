@@ -724,8 +724,13 @@ function renderAdminTurmas(){
       </div>
     </div>
     <div class="card">
-      <h2>Todas as turmas</h2>
-      <div class="table-container" id="tabela-turmas-admin">Carregando...</div>
+      <h2>Turmas ativas</h2>
+      <div class="table-container" id="tabela-turmas-admin-ativas">Carregando...</div>
+    </div>
+    <div class="card">
+      <h2>Semestres anteriores (arquivadas)</h2>
+      <p style="font-size:.85em;color:#777;">Turmas arquivadas somem da tela principal de professores e alunos, mas continuam acessíveis para consulta.</p>
+      <div class="table-container" id="tabela-turmas-admin-arquivadas">Carregando...</div>
     </div>`;
 
   carregarProfessoresNoSelect();
@@ -748,18 +753,38 @@ function renderAdminTurmas(){
   });
 
   const unsub = db.collection("turmas").orderBy("criadoEm", "desc").onSnapshot(snap => {
-    const linhas = snap.docs.map(doc => {
+    const linha = doc => {
       const t = doc.data();
-      return `<tr class="linha-turma-admin" data-id="${doc.id}" style="cursor:pointer;"><td>${escapeHtml(t.nome)}</td><td>${escapeHtml(t.professorNome)}</td><td><span class="codigo">${escapeHtml(t.codigo)}</span></td><td>${fmtData(t.criadoEm)}</td></tr>`;
-    }).join("");
-    document.getElementById("tabela-turmas-admin").innerHTML = `
-      <table>
-        <thead><tr><th>Turma</th><th>Professor(a)</th><th>Código</th><th>Criada em</th></tr></thead>
-        <tbody>${linhas || `<tr><td colspan="4">Nenhuma turma ainda.</td></tr>`}</tbody>
-      </table>
+      const arquivada = t.arquivada === true;
+      return `
+        <tr class="linha-turma-admin" data-id="${doc.id}" style="cursor:pointer;">
+          <td>${escapeHtml(t.nome)}</td>
+          <td>${escapeHtml(t.professorNome)}</td>
+          <td><span class="codigo">${escapeHtml(t.codigo)}</span></td>
+          <td>${fmtData(t.criadoEm)}</td>
+          <td><button class="btn ${arquivada ? "sucesso" : "secundario"} pequeno btn-arquivar-turma" data-id="${doc.id}" data-arquivada="${arquivada}">${arquivada ? "Reativar" : "Arquivar"}</button></td>
+        </tr>`;
+    };
+    const ativas = snap.docs.filter(d => d.data().arquivada !== true).map(linha).join("");
+    const arquivadas = snap.docs.filter(d => d.data().arquivada === true).map(linha).join("");
+    const cabecalho = `<thead><tr><th>Turma</th><th>Professor(a)</th><th>Código</th><th>Criada em</th><th>Ação</th></tr></thead>`;
+
+    document.getElementById("tabela-turmas-admin-ativas").innerHTML = `
+      <table>${cabecalho}<tbody>${ativas || `<tr><td colspan="5">Nenhuma turma ativa.</td></tr>`}</tbody></table>
       <p style="font-size:.8em;color:#888;margin-top:8px;">Clique numa turma para ver solicitações e validar documentos.</p>`;
+    document.getElementById("tabela-turmas-admin-arquivadas").innerHTML = `
+      <table>${cabecalho}<tbody>${arquivadas || `<tr><td colspan="5">Nenhuma turma arquivada.</td></tr>`}</tbody></table>`;
+
     document.querySelectorAll(".linha-turma-admin").forEach(row => {
       row.addEventListener("click", () => { selectedTurmaId = row.dataset.id; renderTurmaDetalhe(); });
+    });
+    document.querySelectorAll(".btn-arquivar-turma").forEach(btn => {
+      btn.addEventListener("click", async (ev) => {
+        ev.stopPropagation();
+        const arquivadaAtualmente = btn.dataset.arquivada === "true";
+        await db.collection("turmas").doc(btn.dataset.id).update({ arquivada: !arquivadaAtualmente });
+        toast(arquivadaAtualmente ? "Turma reativada" : "Turma arquivada", "sucesso");
+      });
     });
   });
   activeUnsubs.push(unsub);
@@ -796,6 +821,16 @@ function renderAjuda(){
    6. PROFESSOR (tela de detalhe da turma também é usada pelo admin)
    ====================================================================== */
 
+function cartaoTurma(doc){
+  const t = doc.data();
+  return `
+    <div class="turma-card" data-id="${doc.id}">
+      <h3>${escapeHtml(t.nome)}</h3>
+      <p>Código: <span class="codigo">${escapeHtml(t.codigo)}</span></p>
+      <p style="font-size:.8em;color:#888;">Criada em ${fmtData(t.criadoEm)}</p>
+    </div>`;
+}
+
 function renderProfessorTurmas(){
   if (selectedTurmaId) return renderTurmaDetalhe();
   const conteudo = document.getElementById("conteudo");
@@ -803,20 +838,24 @@ function renderProfessorTurmas(){
     <div class="card">
       <h2>Minhas turmas</h2>
       <div class="grid-cards" id="grid-turmas-professor">Carregando...</div>
+    </div>
+    <div class="card">
+      <details>
+        <summary style="cursor:pointer;font-weight:600;color:var(--azul-escuro);">Semestres anteriores</summary>
+        <div class="grid-cards" id="grid-turmas-professor-arquivadas" style="margin-top:14px;">Carregando...</div>
+      </details>
     </div>`;
 
   const unsub = db.collection("turmas").where("professorId", "==", currentUser.uid).onSnapshot(snap => {
-    const cards = snap.docs.map(doc => {
-      const t = doc.data();
-      return `
-        <div class="turma-card" data-id="${doc.id}">
-          <h3>${escapeHtml(t.nome)}</h3>
-          <p>Código: <span class="codigo">${escapeHtml(t.codigo)}</span></p>
-          <p style="font-size:.8em;color:#888;">Criada em ${fmtData(t.criadoEm)}</p>
-        </div>`;
-    }).join("");
-    document.getElementById("grid-turmas-professor").innerHTML = cards || "<p>Nenhuma turma foi atribuída a você ainda. Peça ao administrador para criar e vincular uma turma ao seu usuário.</p>";
-    document.querySelectorAll("#grid-turmas-professor .turma-card").forEach(card => {
+    const ativas = snap.docs.filter(d => d.data().arquivada !== true);
+    const arquivadas = snap.docs.filter(d => d.data().arquivada === true);
+
+    document.getElementById("grid-turmas-professor").innerHTML =
+      ativas.map(cartaoTurma).join("") || "<p>Nenhuma turma foi atribuída a você ainda. Peça ao administrador para criar e vincular uma turma ao seu usuário.</p>";
+    document.getElementById("grid-turmas-professor-arquivadas").innerHTML =
+      arquivadas.map(cartaoTurma).join("") || "<p>Nenhuma turma arquivada.</p>";
+
+    document.querySelectorAll("#grid-turmas-professor .turma-card, #grid-turmas-professor-arquivadas .turma-card").forEach(card => {
       card.addEventListener("click", () => { selectedTurmaId = card.dataset.id; renderTurmaDetalhe(); });
     });
   });
@@ -829,7 +868,7 @@ async function criarTurmaComCodigoUnico(nome, professorId, professorNome){
     const existente = await db.collection("turmas").where("codigo", "==", codigo).limit(1).get();
     if (existente.empty){
       const ref = await db.collection("turmas").add({
-        nome, professorId, professorNome, codigo, criadoEm: serverTs(), criadoPor: currentUser.uid
+        nome, professorId, professorNome, codigo, arquivada: false, criadoEm: serverTs(), criadoPor: currentUser.uid
       });
       return ref.id;
     }
@@ -984,6 +1023,12 @@ function renderAlunoTurmas(){
     <div class="card">
       <h2>Minhas turmas</h2>
       <div class="grid-cards" id="grid-turmas-aluno">Carregando...</div>
+    </div>
+    <div class="card">
+      <details>
+        <summary style="cursor:pointer;font-weight:600;color:var(--azul-escuro);">Semestres anteriores</summary>
+        <div class="grid-cards" id="grid-turmas-aluno-arquivadas" style="margin-top:14px;">Carregando...</div>
+      </details>
     </div>`;
 
   document.getElementById("btn-entrar-turma").addEventListener("click", async () => {
@@ -998,18 +1043,27 @@ function renderAlunoTurmas(){
     } finally { hideLoading(); }
   });
 
-  const unsub = db.collection("matriculas").where("alunoEmail", "==", currentUser.email).onSnapshot(snap => {
-    const cards = snap.docs.map(doc => {
-      const m = doc.data();
+  let alunoMatriculas = [];
+  let turmasArquivadasIds = new Set();
+
+  function renderCardsTurmasAluno(){
+    const cartao = m => {
       const info = STATUS_MATRICULA_INFO[m.status];
       return `
         <div class="turma-card" data-id="${m.turmaId}" data-status="${m.status}">
           <h3>${escapeHtml(m.turmaNome)}</h3>
           ${badge(info)}
         </div>`;
-    }).join("");
-    document.getElementById("grid-turmas-aluno").innerHTML = cards || "<p>Você ainda não está em nenhuma turma. Peça o código ao seu professor.</p>";
-    document.querySelectorAll("#grid-turmas-aluno .turma-card").forEach(card => {
+    };
+    const ativas = alunoMatriculas.filter(m => !turmasArquivadasIds.has(m.turmaId));
+    const arquivadas = alunoMatriculas.filter(m => turmasArquivadasIds.has(m.turmaId));
+
+    document.getElementById("grid-turmas-aluno").innerHTML =
+      ativas.map(cartao).join("") || "<p>Você ainda não está em nenhuma turma. Peça o código ao seu professor.</p>";
+    document.getElementById("grid-turmas-aluno-arquivadas").innerHTML =
+      arquivadas.map(cartao).join("") || "<p>Nenhuma turma arquivada.</p>";
+
+    document.querySelectorAll("#grid-turmas-aluno .turma-card, #grid-turmas-aluno-arquivadas .turma-card").forEach(card => {
       card.addEventListener("click", () => {
         if (card.dataset.status !== "aprovado"){
           return toast("Aguarde a aprovação do professor para acessar os documentos desta turma.");
@@ -1018,8 +1072,17 @@ function renderAlunoTurmas(){
         renderAlunoTurmaDetalhe();
       });
     });
+  }
+
+  const unsubMat = db.collection("matriculas").where("alunoEmail", "==", currentUser.email).onSnapshot(snap => {
+    alunoMatriculas = snap.docs.map(d => d.data());
+    renderCardsTurmasAluno();
   });
-  activeUnsubs.push(unsub);
+  const unsubTurmas = db.collection("turmas").onSnapshot(snap => {
+    turmasArquivadasIds = new Set(snap.docs.filter(d => d.data().arquivada === true).map(d => d.id));
+    renderCardsTurmasAluno();
+  });
+  activeUnsubs.push(unsubMat, unsubTurmas);
 }
 
 async function solicitarEntradaTurma(codigo){

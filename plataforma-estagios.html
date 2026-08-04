@@ -374,7 +374,7 @@ function signInGoogle(){
 
 function signInMicrosoft(){
   const provider = new firebase.auth.OAuthProvider("microsoft.com");
-  provider.setCustomParameters({ tenant: "common" });
+  provider.setCustomParameters({ tenant: "316d2bd0-fc41-461e-9371-441a6888f799" });
   showLoading();
   auth.signInWithPopup(provider).catch(handleLoginError).finally(hideLoading);
 }

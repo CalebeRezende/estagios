@@ -608,6 +608,11 @@ function renderAdminUsuarios(){
       </div>
     </div>
     <div class="card">
+      <h2>Convites pendentes</h2>
+      <p style="font-size:.85em;color:#777;">Pessoas criadas aqui ou importadas por Excel que ainda não fizeram o primeiro login. Assim que entrarem, passam a aparecer na tabela de Usuários abaixo.</p>
+      <div class="table-container" id="tabela-convites-pendentes">Carregando...</div>
+    </div>
+    <div class="card">
       <h2>Usuários</h2>
       <div class="table-container" id="tabela-usuarios">Carregando...</div>
     </div>`;
@@ -629,7 +634,43 @@ function renderAdminUsuarios(){
     } finally { hideLoading(); }
   });
 
+  let emailsComUsuario = new Set();
+  let invitesAtuais = [];
+
+  function renderConvitesPendentes(){
+    const container = document.getElementById("tabela-convites-pendentes");
+    if (!container) return;
+    const pendentes = invitesAtuais.filter(inv => !emailsComUsuario.has(inv.id));
+    const linhas = pendentes.map(inv => `
+      <tr>
+        <td>${escapeHtml(inv.data.name)}</td>
+        <td>${escapeHtml(inv.id)}</td>
+        <td>${escapeHtml(inv.data.role)}</td>
+        <td>${fmtData(inv.data.criadoEm)}</td>
+        <td><button class="btn perigo pequeno btn-cancelar-convite" data-email="${escapeHtml(inv.id)}">Cancelar convite</button></td>
+      </tr>`).join("");
+    container.innerHTML = `
+      <table>
+        <thead><tr><th>Nome</th><th>Email</th><th>Papel</th><th>Convidado em</th><th>Ação</th></tr></thead>
+        <tbody>${linhas || `<tr><td colspan="5">Nenhum convite pendente.</td></tr>`}</tbody>
+      </table>`;
+    container.querySelectorAll(".btn-cancelar-convite").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        await db.collection("invites").doc(btn.dataset.email).delete();
+        toast("Convite cancelado", "sucesso");
+      });
+    });
+  }
+
+  const unsubConvites = db.collection("invites").onSnapshot(snap => {
+    invitesAtuais = snap.docs.map(d => ({ id: d.id, data: d.data() }));
+    renderConvitesPendentes();
+  });
+  activeUnsubs.push(unsubConvites);
+
   const unsub = db.collection("users").orderBy("name").onSnapshot(snap => {
+    emailsComUsuario = new Set(snap.docs.map(d => d.data().email));
+    renderConvitesPendentes();
     const linhas = snap.docs.map(doc => {
       const u = doc.data();
       const bloqueado = u.status === "bloqueado";

@@ -129,16 +129,14 @@
   <div class="login-box">
     <h1>🎓 Plataforma de Estágios</h1>
     <p style="color:#666;">Gestão de entrega e validação de documentos de estágio curricular</p>
-    <button class="btn-sso google" id="btn-login-google">🟦&nbsp; Entrar com Google</button>
     <button class="btn-sso microsoft" id="btn-login-microsoft">🟪&nbsp; Entrar com Microsoft</button>
 
-    <div style="text-align:center;color:#999;font-size:.85em;margin:16px 0;">— ou com email e senha —</div>
+    <p style="font-size:.8em;color:#888;margin-top:22px;">Acesso institucional. Alunos e professores entram com a conta Microsoft da organização.</p>
 
-    <div style="text-align:left;">
-      <div id="campo-nome-cadastro">
-        <label>Nome completo</label>
-        <input type="text" id="input-nome-cadastro" placeholder="Necessário apenas para criar conta">
-      </div>
+    <button class="voltar-link" id="btn-toggle-login-admin" style="font-size:.8em;margin-top:18px;">Acesso administrativo</button>
+
+    <div id="bloco-login-admin" class="hidden" style="text-align:left;margin-top:14px;border-top:1px solid #eee;padding-top:14px;">
+      <button class="btn-sso google" id="btn-login-google">🟦&nbsp; Entrar com Google</button>
       <div style="margin-top:10px;">
         <label>Email</label>
         <input type="email" id="input-email-login">
@@ -147,14 +145,10 @@
         <label>Senha</label>
         <input type="password" id="input-senha-login" placeholder="mínimo 6 caracteres">
       </div>
-      <div style="display:flex;gap:8px;margin-top:14px;">
-        <button class="btn" id="btn-entrar-senha" style="flex:1;">Entrar</button>
-        <button class="btn secundario" id="btn-criar-conta-senha" style="flex:1;">Criar conta</button>
-      </div>
+      <button class="btn" id="btn-entrar-senha" style="width:100%;margin-top:14px;">Entrar</button>
       <button class="voltar-link" id="btn-esqueci-senha" style="font-size:.8em;margin-top:10px;">Esqueci minha senha</button>
+      <p style="font-size:.75em;color:#aaa;margin-top:10px;">Restrito a administradores.</p>
     </div>
-
-    <p style="font-size:.8em;color:#888;margin-top:22px;">Alunos: podem criar a própria conta.<br>Professores: seu acesso precisa ter sido cadastrado antes por um administrador (mas você mesmo cria sua senha na primeira vez).</p>
   </div>
 </div>
 
@@ -217,7 +211,6 @@ const TIPOS_DOCUMENTO = [
 
 let app, auth, db;
 let currentUser = null; // { uid, email, name, role }
-let pendingSignupName = null; // nome digitado no cadastro por email/senha, consumido no 1º login
 let activeUnsubs = [];
 let currentTab = null;
 let selectedTurmaId = null;
@@ -326,6 +319,8 @@ async function onAuthChange(user){
     console.error(e);
     if (e.message === "CONTA_BLOQUEADA"){
       toast("Sua conta foi bloqueada. Entre em contato com o administrador.", "erro");
+    } else if (e.message === "LOGIN_RESTRITO"){
+      toast('Esse método de login é restrito a administradores. Use "Entrar com Microsoft".', "erro");
     } else {
       toast("Erro ao carregar seu perfil: " + e.message, "erro");
     }
@@ -337,19 +332,19 @@ async function onAuthChange(user){
 
 async function resolveUserProfile(user){
   const emailLower = (user.email || "").toLowerCase();
-  const nomeCadastro = pendingSignupName;
-  pendingSignupName = null;
+  const providerId = (user.providerData[0] && user.providerData[0].providerId) || "";
   const userRef = db.collection("users").doc(user.uid);
   const snap = await userRef.get();
 
   if (snap.exists){
     const data = snap.data();
     if (data.status === "bloqueado") throw new Error("CONTA_BLOQUEADA");
-    return { uid: user.uid, email: emailLower, name: data.name || user.displayName || nomeCadastro || emailLower, role: data.role };
+    if (data.role !== "admin" && providerId !== "microsoft.com") throw new Error("LOGIN_RESTRITO");
+    return { uid: user.uid, email: emailLower, name: data.name || user.displayName || emailLower, role: data.role };
   }
 
   // primeiro login: resolve papel a partir de convite do admin/professor, allowlist de admin, ou aluno por padrão
-  let role, name = user.displayName || nomeCadastro || emailLower;
+  let role, name = user.displayName || emailLower;
   const inviteRef = db.collection("invites").doc(emailLower);
   const inviteSnap = await inviteRef.get();
 
@@ -359,8 +354,11 @@ async function resolveUserProfile(user){
   } else if (ADMIN_EMAILS.includes(emailLower)){
     role = "admin";
   } else {
-    role = "aluno"; // autocadastro
+    role = "aluno"; // autocadastro (só permitido via Microsoft)
   }
+
+  // Google e email/senha ficam restritos a administradores; todo o resto entra só pela Microsoft.
+  if (role !== "admin" && providerId !== "microsoft.com") throw new Error("LOGIN_RESTRITO");
 
   await userRef.set({ name, email: emailLower, role, status: "ativo", criadoEm: serverTs() });
   return { uid: user.uid, email: emailLower, name, role };
@@ -387,24 +385,6 @@ async function entrarComEmailSenha(){
   try {
     await auth.signInWithEmailAndPassword(email, senha);
   } catch (e){
-    handleLoginError(e);
-  } finally { hideLoading(); }
-}
-
-async function criarContaComEmailSenha(){
-  const nome = document.getElementById("input-nome-cadastro").value.trim();
-  const email = document.getElementById("input-email-login").value.trim().toLowerCase();
-  const senha = document.getElementById("input-senha-login").value;
-  if (!nome) return toast("Informe seu nome completo para criar a conta", "erro");
-  if (!emailValido(email)) return toast("Informe um email válido", "erro");
-  if (senha.length < 6) return toast("A senha precisa ter pelo menos 6 caracteres", "erro");
-  showLoading();
-  try {
-    pendingSignupName = nome;
-    const cred = await auth.createUserWithEmailAndPassword(email, senha);
-    await cred.user.updateProfile({ displayName: nome });
-  } catch (e){
-    pendingSignupName = null;
     handleLoginError(e);
   } finally { hideLoading(); }
 }
@@ -519,7 +499,7 @@ function renderAdminImportar(){
   conteudo.innerHTML = `
     <div class="card">
       <h2>Importar professores e alunos via Excel</h2>
-      <div class="info-box">A planilha deve ter colunas <b>Nome</b>, <b>Email</b> e <b>Papel</b> (valores: <code>professor</code> ou <code>aluno</code>). O cadastro é aplicado no primeiro login da pessoa (com Google ou com email/senha).</div>
+      <div class="info-box">A planilha deve ter colunas <b>Nome</b>, <b>Email</b> e <b>Papel</b> (valores: <code>professor</code> ou <code>aluno</code>). O cadastro é aplicado no primeiro login da pessoa com a conta Microsoft da organização (mesmo e-mail cadastrado aqui).</div>
       <input type="file" id="input-excel" accept=".xlsx,.xls,.csv">
       <div id="resultado-importacao" style="margin-top:16px;"></div>
     </div>
@@ -612,7 +592,7 @@ function renderAdminUsuarios(){
   conteudo.innerHTML = `
     <div class="card">
       <h2>Criar usuário</h2>
-      <div class="info-box">Cria o cadastro na hora. A pessoa só precisa entrar com Google ou criar uma conta com esse mesmo e-mail para o acesso ser liberado com o papel escolhido.</div>
+      <div class="info-box">Cria o cadastro na hora. A pessoa só precisa entrar com a conta Microsoft da organização usando esse mesmo e-mail para o acesso ser liberado com o papel escolhido. (Admins também podem entrar por Google ou e-mail/senha, em "Acesso administrativo" na tela de login.)</div>
       <div class="linha-form">
         <div><label>Nome completo</label><input type="text" id="input-nome-novo-usuario"></div>
         <div><label>Email</label><input type="email" id="input-email-novo-usuario"></div>
@@ -1348,8 +1328,10 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btn-login-google").addEventListener("click", signInGoogle);
   document.getElementById("btn-login-microsoft").addEventListener("click", signInMicrosoft);
   document.getElementById("btn-entrar-senha").addEventListener("click", entrarComEmailSenha);
-  document.getElementById("btn-criar-conta-senha").addEventListener("click", criarContaComEmailSenha);
   document.getElementById("btn-esqueci-senha").addEventListener("click", esqueciSenha);
+  document.getElementById("btn-toggle-login-admin").addEventListener("click", () => {
+    document.getElementById("bloco-login-admin").classList.toggle("hidden");
+  });
   document.getElementById("btn-logout").addEventListener("click", () => auth.signOut());
   initFirebase();
 });

@@ -200,9 +200,12 @@ const ADMIN_EMAILS = ["calebemrnos@gmail.com"];
 const DRIVE_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzCV1uqSfuvowfbCmuaspNsooiq6j8g4molftovwlqx5wshYa0bAmQyw-LYfqoBjGZK/exec";
 
 const TIPOS_DOCUMENTO = [
-  { id: "ficha",    nome: "Ficha de Estágio" },
-  { id: "contrato", nome: "Termo de Compromisso" },
-  { id: "outro",    nome: "Termo de Convênio (para alunos que fazem estágio fora do município de São Paulo)" }
+  { id: "ficha",    nome: "Ficha de Estágio",
+    instrucao: 'Nomeie o arquivo assim: <b>26.2_FE_disciplina_nomedoaluno</b> (no lugar de "disciplina", coloque o nome da disciplina correspondente).' },
+  { id: "contrato", nome: "Termo de Compromisso",
+    instrucao: 'Nomeie o arquivo assim: <b>26.2_TCE_disciplina_nomedoaluno</b> (no lugar de "disciplina", coloque o nome da disciplina correspondente).' },
+  { id: "outro",    nome: "Termo de Convênio (para alunos que fazem estágio fora do município de São Paulo)",
+    instrucao: "Necessário apenas para quem faz estágio fora da cidade de São Paulo. Se não for o seu caso, pode deixar sem enviar." }
 ];
 
 /* ======================================================================
@@ -1212,7 +1215,10 @@ function renderListaDocumentosAluno(){
     const obs = (status === "rejeitado" && doc && doc.observacao) ? `<div class="aviso" style="margin-top:8px;">Motivo da rejeição: ${escapeHtml(doc.observacao)}</div>` : "";
     return `
       <div class="doc-linha">
-        <div class="doc-nome">${escapeHtml(tipo.nome)}<br>${badge(info)} ${link}${obs}</div>
+        <div class="doc-nome">${escapeHtml(tipo.nome)}<br>${badge(info)} ${link}
+          ${tipo.instrucao ? `<div style="font-size:.8em;color:#777;font-weight:normal;margin-top:6px;max-width:420px;">💡 ${tipo.instrucao}</div>` : ""}
+          ${obs}
+        </div>
         <div>
           ${travado ? "" : `
             <input type="file" data-tipo="${tipo.id}" class="input-upload-doc" style="max-width:220px;display:inline-block;">

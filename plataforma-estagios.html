@@ -771,6 +771,17 @@ function renderAdminTurmas(){
       <div id="resultado-import-turmas" style="margin-top:16px;"></div>
     </div>
     <div class="card">
+      <h2>Prazos em lote</h2>
+      <p style="font-size:.85em;color:#777;">Aplica as datas abaixo a todas as turmas ativas de uma vez. Deixe um campo em branco para não mexer naquele prazo.</p>
+      <div class="linha-form">
+        <div><label>Prazo geral da disciplina</label><input type="date" id="input-lote-prazo-disciplina"></div>
+        <div><label>Ficha de Estágio</label><input type="date" id="input-lote-prazo-ficha"></div>
+        <div><label>Termo de Compromisso</label><input type="date" id="input-lote-prazo-contrato"></div>
+        <div><label>Termo de Convênio</label><input type="date" id="input-lote-prazo-outro"></div>
+        <div style="flex:0;"><button class="btn" id="btn-aplicar-prazos-lote">Aplicar a todas as ativas</button></div>
+      </div>
+    </div>
+    <div class="card">
       <h2>Turmas ativas</h2>
       <div class="table-container" id="tabela-turmas-admin-ativas">Carregando...</div>
     </div>
@@ -801,7 +812,34 @@ function renderAdminTurmas(){
 
   document.getElementById("btn-importar-turmas-lote").addEventListener("click", handleImportarTurmasLote);
 
+  let turmasAtivasIds = [];
+
+  document.getElementById("btn-aplicar-prazos-lote").addEventListener("click", async () => {
+    const campos = {
+      prazoDisciplina: document.getElementById("input-lote-prazo-disciplina").value,
+      prazoFicha: document.getElementById("input-lote-prazo-ficha").value,
+      prazoContrato: document.getElementById("input-lote-prazo-contrato").value,
+      prazoOutro: document.getElementById("input-lote-prazo-outro").value
+    };
+    const atualizacao = {};
+    Object.entries(campos).forEach(([chave, valor]) => { if (valor) atualizacao[chave] = valor; });
+    if (Object.keys(atualizacao).length === 0) return toast("Preencha ao menos um prazo", "erro");
+    if (turmasAtivasIds.length === 0) return toast("Nenhuma turma ativa encontrada", "erro");
+    const ok = confirm(`Aplicar esses prazos a ${turmasAtivasIds.length} turma(s) ativa(s)? Isso substitui os prazos já definidos nelas.`);
+    if (!ok) return;
+    showLoading();
+    try {
+      const batch = db.batch();
+      turmasAtivasIds.forEach(id => batch.update(db.collection("turmas").doc(id), atualizacao));
+      await batch.commit();
+      toast(`Prazos aplicados a ${turmasAtivasIds.length} turma(s)`, "sucesso");
+    } catch (e){
+      toast(e.message, "erro");
+    } finally { hideLoading(); }
+  });
+
   const unsub = db.collection("turmas").orderBy("criadoEm", "desc").onSnapshot(snap => {
+    turmasAtivasIds = snap.docs.filter(d => d.data().arquivada !== true).map(d => d.id);
     const linha = doc => {
       const t = doc.data();
       const arquivada = t.arquivada === true;

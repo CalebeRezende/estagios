@@ -200,11 +200,11 @@ const ADMIN_EMAILS = ["calebemrnos@gmail.com"];
 const DRIVE_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzCV1uqSfuvowfbCmuaspNsooiq6j8g4molftovwlqx5wshYa0bAmQyw-LYfqoBjGZK/exec";
 
 const TIPOS_DOCUMENTO = [
-  { id: "ficha",    nome: "Ficha de Estágio",
+  { id: "ficha",    nome: "Ficha de Estágio", campoPrazo: "prazoFicha",
     instrucao: 'Nomeie o arquivo assim: <b>26.2_FE_disciplina_nomedoaluno</b> (no lugar de "disciplina", coloque o nome da disciplina correspondente).' },
-  { id: "contrato", nome: "Termo de Compromisso",
+  { id: "contrato", nome: "Termo de Compromisso", campoPrazo: "prazoContrato",
     instrucao: 'Nomeie o arquivo assim: <b>26.2_TCE_disciplina_nomedoaluno</b> (no lugar de "disciplina", coloque o nome da disciplina correspondente).' },
-  { id: "outro",    nome: "Termo de Convênio (para alunos que fazem estágio fora do município de São Paulo)",
+  { id: "outro",    nome: "Termo de Convênio (para alunos que fazem estágio fora do município de São Paulo)", campoPrazo: "prazoOutro",
     instrucao: 'Necessário apenas para quem faz estágio fora da cidade de São Paulo (se não for o seu caso, pode deixar sem enviar). Nomeie o arquivo assim: <b>26.2_TC_disciplina_nomedoaluno</b> (no lugar de "disciplina", coloque o nome da disciplina correspondente).' }
 ];
 
@@ -253,6 +253,17 @@ function fmtData(ts){
   if (!ts) return "—";
   const d = ts.toDate ? ts.toDate() : new Date(ts);
   return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function fmtDataSimples(isoData){
+  if (!isoData) return "—";
+  const [ano, mes, dia] = isoData.split("-");
+  return `${dia}/${mes}/${ano}`;
+}
+
+function prazoVencido(isoData){
+  if (!isoData) return false;
+  return new Date(isoData + "T23:59:59") < new Date();
 }
 
 function clearUnsubs(){
@@ -958,6 +969,7 @@ function renderTurmaDetalhe(){
   conteudo.innerHTML = `
     <button class="voltar-link" id="btn-voltar-turma">← Voltar para as turmas</button>
     <div class="card" id="cabecalho-turma">Carregando...</div>
+    <div class="card" id="card-prazos-turma">Carregando...</div>
     <div class="card">
       <h2>Solicitações pendentes</h2>
       <div class="table-container" id="tabela-solicitacoes">Carregando...</div>
@@ -975,6 +987,7 @@ function renderTurmaDetalhe(){
     document.getElementById("cabecalho-turma").innerHTML = `
       <h2>${escapeHtml(cacheTurma.nome)}</h2>
       <p>Código para os alunos entrarem: <span class="codigo">${escapeHtml(cacheTurma.codigo)}</span></p>`;
+    renderCardPrazos();
   });
 
   cacheMatriculas = [];
@@ -991,6 +1004,44 @@ function renderTurmaDetalhe(){
     renderMatrizDocumentos();
   });
   activeUnsubs.push(unsubMat, unsubDocs);
+}
+
+function renderCardPrazos(){
+  const container = document.getElementById("card-prazos-turma");
+  if (!container) return;
+  const campos = [
+    { campo: "prazoDisciplina", label: "Prazo geral da disciplina" },
+    ...TIPOS_DOCUMENTO.map(t => ({ campo: t.campoPrazo, label: t.nome }))
+  ];
+
+  if (currentUser.role === "admin"){
+    container.innerHTML = `
+      <h2>Prazos de entrega</h2>
+      <div class="linha-form">
+        ${campos.map(c => `
+          <div><label>${escapeHtml(c.label)}</label><input type="date" class="input-prazo" data-campo="${c.campo}" value="${cacheTurma[c.campo] || ""}"></div>
+        `).join("")}
+        <div style="flex:0;"><button class="btn" id="btn-salvar-prazos">Salvar prazos</button></div>
+      </div>`;
+    document.getElementById("btn-salvar-prazos").addEventListener("click", async () => {
+      const atualizacao = {};
+      container.querySelectorAll(".input-prazo").forEach(inp => { atualizacao[inp.dataset.campo] = inp.value || null; });
+      showLoading();
+      try {
+        await db.collection("turmas").doc(selectedTurmaId).update(atualizacao);
+        Object.assign(cacheTurma, atualizacao);
+        toast("Prazos salvos", "sucesso");
+      } catch (e){
+        toast(e.message, "erro");
+      } finally { hideLoading(); }
+    });
+  } else {
+    container.innerHTML = `
+      <h2>Prazos de entrega</h2>
+      <ul style="margin:0;padding-left:18px;">
+        ${campos.map(c => `<li>${escapeHtml(c.label)}: <b>${fmtDataSimples(cacheTurma[c.campo])}</b></li>`).join("")}
+      </ul>`;
+  }
 }
 
 function renderSolicitacoesPendentes(){
@@ -1188,7 +1239,11 @@ function renderAlunoTurmaDetalhe(){
 
   db.collection("turmas").doc(selectedTurmaId).get().then(doc => {
     if (doc.exists){
-      document.getElementById("cabecalho-turma-aluno").innerHTML = `<h2>${escapeHtml(doc.data().nome)}</h2>`;
+      cacheTurma = doc.data();
+      document.getElementById("cabecalho-turma-aluno").innerHTML = `
+        <h2>${escapeHtml(cacheTurma.nome)}</h2>
+        ${cacheTurma.prazoDisciplina ? `<p style="color:#777;font-size:.9em;">Prazo final da disciplina: <b>${fmtDataSimples(cacheTurma.prazoDisciplina)}</b></p>` : ""}`;
+      renderListaDocumentosAluno();
     }
   });
 
@@ -1213,9 +1268,15 @@ function renderListaDocumentosAluno(){
     const travado = status === "validado";
     const link = doc && doc.arquivoURL ? `<a href="${escapeHtml(doc.arquivoURL)}" target="_blank" rel="noopener" style="font-size:.85em;">ver arquivo enviado</a>` : "";
     const obs = (status === "rejeitado" && doc && doc.observacao) ? `<div class="aviso" style="margin-top:8px;">Motivo da rejeição: ${escapeHtml(doc.observacao)}</div>` : "";
+    const prazo = cacheTurma ? cacheTurma[tipo.campoPrazo] : null;
+    const atrasado = !travado && prazoVencido(prazo);
+    const prazoHtml = prazo
+      ? `<div style="font-size:.8em;margin-top:4px;color:${atrasado ? "#e74c3c" : "#555"};">📅 Prazo: <b>${fmtDataSimples(prazo)}</b>${atrasado ? " — atrasado" : ""}</div>`
+      : "";
     return `
       <div class="doc-linha">
         <div class="doc-nome">${escapeHtml(tipo.nome)}<br>${badge(info)} ${link}
+          ${prazoHtml}
           ${tipo.instrucao ? `<div style="font-size:.8em;color:#777;font-weight:normal;margin-top:6px;max-width:420px;">💡 ${tipo.instrucao}</div>` : ""}
           ${obs}
         </div>

@@ -1022,9 +1022,34 @@ function renderTurmaDetalhe(){
   db.collection("turmas").doc(selectedTurmaId).get().then(doc => {
     if (!doc.exists){ toast("Turma não encontrada", "erro"); voltarParaListaDeTurmas(); return; }
     cacheTurma = doc.data();
+    const professorHtml = currentUser.role === "admin" ? `
+      <div class="linha-form" style="margin-top:10px;">
+        <div><label>Professor(a) responsável</label><input type="text" id="input-editar-nome-professor" value="${escapeHtml(cacheTurma.professorNome)}"></div>
+        <div><label>Email do professor</label><input type="email" id="input-editar-email-professor" value="${escapeHtml(cacheTurma.professorEmail)}"></div>
+        <div style="flex:0;"><button class="btn secundario pequeno" id="btn-salvar-professor-turma">Salvar professor</button></div>
+      </div>`
+      : `<p>Professor(a) responsável: <b>${escapeHtml(cacheTurma.professorNome)}</b></p>`;
     document.getElementById("cabecalho-turma").innerHTML = `
       <h2>${escapeHtml(cacheTurma.nome)}</h2>
-      <p>Código para os alunos entrarem: <span class="codigo">${escapeHtml(cacheTurma.codigo)}</span></p>`;
+      <p>Código para os alunos entrarem: <span class="codigo">${escapeHtml(cacheTurma.codigo)}</span></p>
+      ${professorHtml}`;
+    if (currentUser.role === "admin"){
+      document.getElementById("btn-salvar-professor-turma").addEventListener("click", async () => {
+        const nome = document.getElementById("input-editar-nome-professor").value.trim();
+        const email = document.getElementById("input-editar-email-professor").value.trim().toLowerCase();
+        if (!nome || !emailValido(email)) return toast("Informe nome e e-mail válidos do professor", "erro");
+        showLoading();
+        try {
+          await criarOuAtualizarConvite(nome, email, "professor");
+          await db.collection("turmas").doc(selectedTurmaId).update({ professorNome: nome, professorEmail: email });
+          cacheTurma.professorNome = nome;
+          cacheTurma.professorEmail = email;
+          toast("Professor da turma atualizado. Alunos e documentos continuam intactos.", "sucesso");
+        } catch (e){
+          toast(e.message, "erro");
+        } finally { hideLoading(); }
+      });
+    }
     renderCardPrazos();
   });
 

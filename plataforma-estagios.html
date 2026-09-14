@@ -1022,6 +1022,9 @@ function renderTurmaDetalhe(){
   db.collection("turmas").doc(selectedTurmaId).get().then(doc => {
     if (!doc.exists){ toast("Turma não encontrada", "erro"); voltarParaListaDeTurmas(); return; }
     cacheTurma = doc.data();
+    const tituloHtml = currentUser.role === "admin"
+      ? `<div class="linha-form"><div><label>Nome da turma</label><input type="text" id="input-editar-nome-turma" value="${escapeHtml(cacheTurma.nome)}"></div><div style="flex:0;"><button class="btn secundario pequeno" id="btn-salvar-nome-turma">Salvar nome</button></div></div>`
+      : `<h2>${escapeHtml(cacheTurma.nome)}</h2>`;
     const professorHtml = currentUser.role === "admin" ? `
       <div class="linha-form" style="margin-top:10px;">
         <div><label>Professor(a) responsável</label><input type="text" id="input-editar-nome-professor" value="${escapeHtml(cacheTurma.professorNome)}"></div>
@@ -1030,10 +1033,22 @@ function renderTurmaDetalhe(){
       </div>`
       : `<p>Professor(a) responsável: <b>${escapeHtml(cacheTurma.professorNome)}</b></p>`;
     document.getElementById("cabecalho-turma").innerHTML = `
-      <h2>${escapeHtml(cacheTurma.nome)}</h2>
+      ${tituloHtml}
       <p>Código para os alunos entrarem: <span class="codigo">${escapeHtml(cacheTurma.codigo)}</span></p>
       ${professorHtml}`;
     if (currentUser.role === "admin"){
+      document.getElementById("btn-salvar-nome-turma").addEventListener("click", async () => {
+        const nome = document.getElementById("input-editar-nome-turma").value.trim();
+        if (!nome) return toast("Informe o nome da turma", "erro");
+        showLoading();
+        try {
+          await db.collection("turmas").doc(selectedTurmaId).update({ nome });
+          cacheTurma.nome = nome;
+          toast("Nome da turma atualizado", "sucesso");
+        } catch (e){
+          toast(e.message, "erro");
+        } finally { hideLoading(); }
+      });
       document.getElementById("btn-salvar-professor-turma").addEventListener("click", async () => {
         const nome = document.getElementById("input-editar-nome-professor").value.trim();
         const email = document.getElementById("input-editar-email-professor").value.trim().toLowerCase();
@@ -1229,13 +1244,14 @@ function renderAlunoTurmas(){
 
   let alunoMatriculas = [];
   let turmasArquivadasIds = new Set();
+  let turmasNomesMap = {};
 
   function renderCardsTurmasAluno(){
     const cartao = m => {
       const info = STATUS_MATRICULA_INFO[m.status];
       return `
         <div class="turma-card" data-id="${m.turmaId}" data-status="${m.status}">
-          <h3>${escapeHtml(m.turmaNome)}</h3>
+          <h3>${escapeHtml(turmasNomesMap[m.turmaId] || m.turmaNome)}</h3>
           ${badge(info)}
         </div>`;
     };
@@ -1264,6 +1280,8 @@ function renderAlunoTurmas(){
   });
   const unsubTurmas = db.collection("turmas").onSnapshot(snap => {
     turmasArquivadasIds = new Set(snap.docs.filter(d => d.data().arquivada === true).map(d => d.id));
+    turmasNomesMap = {};
+    snap.forEach(d => { turmasNomesMap[d.id] = d.data().nome; });
     renderCardsTurmasAluno();
   });
   activeUnsubs.push(unsubMat, unsubTurmas);

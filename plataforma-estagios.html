@@ -488,7 +488,14 @@ function renderTab(tabId){
 
 function renderAdminDashboard(){
   const conteudo = document.getElementById("conteudo");
-  conteudo.innerHTML = `<div class="grid-stats" id="admin-stats"><div class="stat-box"><div class="num">…</div><div class="lbl">carregando</div></div></div>`;
+  conteudo.innerHTML = `
+    <div class="grid-stats" id="admin-stats"><div class="stat-box"><div class="num">…</div><div class="lbl">carregando</div></div></div>
+    <div class="card">
+      <h2>Painel de documentos</h2>
+      <p style="font-size:.85em;color:#777;">Considera apenas alunos matriculados e aprovados em turmas ativas (semestres anteriores não entram na conta).</p>
+      <div id="painel-documentos">Carregando...</div>
+    </div>`;
+
   const unsub = db.collection("users").onSnapshot(snap => {
     let admins = 0, professores = 0, alunos = 0;
     snap.forEach(doc => {
@@ -506,6 +513,49 @@ function renderAdminDashboard(){
     });
   });
   activeUnsubs.push(unsub);
+
+  let turmasAtivasIds = new Set();
+  let matriculasAprovadas = [];
+  let documentosValidados = [];
+
+  function renderBarrasDocumentos(){
+    const container = document.getElementById("painel-documentos");
+    if (!container) return;
+    const matriculasFiltradas = matriculasAprovadas.filter(m => turmasAtivasIds.has(m.turmaId));
+    const total = matriculasFiltradas.length;
+    const documentosFiltrados = documentosValidados.filter(d => turmasAtivasIds.has(d.turmaId));
+
+    container.innerHTML = TIPOS_DOCUMENTO.map(tipo => {
+      const aceitos = documentosFiltrados.filter(d => d.tipo === tipo.id).length;
+      const faltando = Math.max(total - aceitos, 0);
+      const pctAceitos = total > 0 ? (aceitos / total) * 100 : 0;
+      return `
+        <div style="margin-bottom:22px;">
+          <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:.9em;margin-bottom:6px;">
+            <b>${escapeHtml(tipo.nome)}</b>
+            <span><span style="color:var(--verde);font-weight:600;">${aceitos} aceitos</span> · <span style="color:var(--vermelho);font-weight:600;">${faltando} faltando</span> (de ${total} alunos)</span>
+          </div>
+          <div style="position:relative;height:26px;border-radius:8px;overflow:hidden;background:#f1d4d1;">
+            <div style="position:absolute;inset:0;background:var(--vermelho);opacity:.3;"></div>
+            <div style="position:absolute;top:4px;bottom:4px;left:0;width:${pctAceitos}%;background:var(--verde);border-radius:6px;transition:width .3s;"></div>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  const unsubTurmas = db.collection("turmas").onSnapshot(snap => {
+    turmasAtivasIds = new Set(snap.docs.filter(d => d.data().arquivada !== true).map(d => d.id));
+    renderBarrasDocumentos();
+  });
+  const unsubMatriculas = db.collection("matriculas").where("status", "==", "aprovado").onSnapshot(snap => {
+    matriculasAprovadas = snap.docs.map(d => d.data());
+    renderBarrasDocumentos();
+  });
+  const unsubDocumentos = db.collection("documentos").where("status", "==", "validado").onSnapshot(snap => {
+    documentosValidados = snap.docs.map(d => d.data());
+    renderBarrasDocumentos();
+  });
+  activeUnsubs.push(unsubTurmas, unsubMatriculas, unsubDocumentos);
 }
 
 function renderAdminImportar(){

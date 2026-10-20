@@ -1166,12 +1166,16 @@ function renderMatrizDocumentos(){
       const status = doc ? doc.status : "pendente";
       const info = STATUS_DOC_INFO[status];
       const link = doc && doc.arquivoURL ? `<br><a href="${escapeHtml(doc.arquivoURL)}" target="_blank" rel="noopener">ver arquivo</a>` : "";
-      const acoes = (doc && status === "enviado") ? `
+      const acoesValidacao = (doc && status === "enviado") ? `
         <div class="btn-group" style="margin-top:6px;">
           <button class="btn sucesso pequeno btn-validar" data-id="${doc.id}">Validar</button>
           <button class="btn perigo pequeno btn-rejeitar" data-id="${doc.id}">Rejeitar</button>
         </div>` : "";
-      return `<td>${badge(info)}${link}${acoes}</td>`;
+      const acaoApagar = doc ? `
+        <div style="margin-top:6px;">
+          <button class="btn perigo pequeno btn-apagar-documento" data-id="${doc.id}">Apagar</button>
+        </div>` : "";
+      return `<td>${badge(info)}${link}${acoesValidacao}${acaoApagar}</td>`;
     }).join("");
     return `<tr><td>${escapeHtml(m.alunoNome)}<br><span style="color:#888;font-size:.8em;">${escapeHtml(m.alunoEmail)}</span></td>${celulas}</tr>`;
   }).join("");
@@ -1184,6 +1188,19 @@ function renderMatrizDocumentos(){
 
   container.querySelectorAll(".btn-validar").forEach(b => b.addEventListener("click", () => validarDocumento(b.dataset.id, true)));
   container.querySelectorAll(".btn-rejeitar").forEach(b => b.addEventListener("click", () => validarDocumento(b.dataset.id, false)));
+  container.querySelectorAll(".btn-apagar-documento").forEach(b => b.addEventListener("click", () => apagarDocumento(b.dataset.id)));
+}
+
+async function apagarDocumento(documentoId){
+  const ok = confirm("Tem certeza que deseja apagar este documento?\n\nO aluno vai precisar enviar de novo (mesmo que já estivesse validado). O arquivo já salvo no Google Drive não é apagado automaticamente — apague-o lá também se quiser.");
+  if (!ok) return;
+  showLoading();
+  try {
+    await db.collection("documentos").doc(documentoId).delete();
+    toast("Documento apagado", "sucesso");
+  } catch (e){
+    toast(e.message, "erro");
+  } finally { hideLoading(); }
 }
 
 async function validarDocumento(documentoId, aprovado){
@@ -1475,6 +1492,7 @@ service cloud.firestore {
     match /documentos/{documentoId} {
       allow read: if logado() && estouAtivo();
       allow create, update: if logado() && estouAtivo();
+      allow delete: if estouAtivo() && (souProfessor() || souAdmin());
     }
   }
 }`;

@@ -290,6 +290,22 @@ function badge(info){
   return `<span class="badge" style="background:${info.cor}">${escapeHtml(info.label)}</span>`;
 }
 
+function barraDocumentoHtml(tipo, aceitos, total){
+  const faltando = Math.max(total - aceitos, 0);
+  const pctAceitos = total > 0 ? (aceitos / total) * 100 : 0;
+  return `
+    <div style="margin-bottom:22px;">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:.9em;margin-bottom:6px;">
+        <b>${escapeHtml(tipo.nome)}</b>
+        <span><span style="color:var(--verde);font-weight:600;">${aceitos} aceitos</span> · <span style="color:var(--vermelho);font-weight:600;">${faltando} faltando</span> (de ${total} alunos)</span>
+      </div>
+      <div style="position:relative;height:26px;border-radius:8px;overflow:hidden;background:#f1d4d1;">
+        <div style="position:absolute;inset:0;background:var(--vermelho);opacity:.3;"></div>
+        <div style="position:absolute;top:4px;bottom:4px;left:0;width:${pctAceitos}%;background:var(--verde);border-radius:6px;transition:width .3s;"></div>
+      </div>
+    </div>`;
+}
+
 function emailValido(email){
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
@@ -527,19 +543,7 @@ function renderAdminDashboard(){
 
     container.innerHTML = TIPOS_DOCUMENTO.map(tipo => {
       const aceitos = documentosFiltrados.filter(d => d.tipo === tipo.id).length;
-      const faltando = Math.max(total - aceitos, 0);
-      const pctAceitos = total > 0 ? (aceitos / total) * 100 : 0;
-      return `
-        <div style="margin-bottom:22px;">
-          <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:.9em;margin-bottom:6px;">
-            <b>${escapeHtml(tipo.nome)}</b>
-            <span><span style="color:var(--verde);font-weight:600;">${aceitos} aceitos</span> · <span style="color:var(--vermelho);font-weight:600;">${faltando} faltando</span> (de ${total} alunos)</span>
-          </div>
-          <div style="position:relative;height:26px;border-radius:8px;overflow:hidden;background:#f1d4d1;">
-            <div style="position:absolute;inset:0;background:var(--vermelho);opacity:.3;"></div>
-            <div style="position:absolute;top:4px;bottom:4px;left:0;width:${pctAceitos}%;background:var(--verde);border-radius:6px;transition:width .3s;"></div>
-          </div>
-        </div>`;
+      return barraDocumentoHtml(tipo, aceitos, total);
     }).join("");
   }
 
@@ -1057,6 +1061,10 @@ function renderTurmaDetalhe(){
   conteudo.innerHTML = `
     <button class="voltar-link" id="btn-voltar-turma">← Voltar para as turmas</button>
     <div class="card" id="cabecalho-turma">Carregando...</div>
+    <div class="card">
+      <h2>Visão geral de entregas</h2>
+      <div id="visao-geral-entregas">Carregando...</div>
+    </div>
     <div class="card" id="card-prazos-turma">Carregando...</div>
     <div class="card">
       <h2>Solicitações pendentes</h2>
@@ -1125,13 +1133,29 @@ function renderTurmaDetalhe(){
     cacheMatriculas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderSolicitacoesPendentes();
     renderMatrizDocumentos();
+    renderVisaoGeralEntregas();
   });
   const unsubDocs = db.collection("documentos").where("turmaId", "==", selectedTurmaId).onSnapshot(snap => {
     cacheDocumentos = {};
     snap.forEach(d => { const doc = d.data(); cacheDocumentos[doc.alunoEmail + "_" + doc.tipo] = { id: d.id, ...doc }; });
     renderMatrizDocumentos();
+    renderVisaoGeralEntregas();
   });
   activeUnsubs.push(unsubMat, unsubDocs);
+}
+
+function renderVisaoGeralEntregas(){
+  const container = document.getElementById("visao-geral-entregas");
+  if (!container) return;
+  const aprovados = cacheMatriculas.filter(m => m.status === "aprovado");
+  const total = aprovados.length;
+  container.innerHTML = TIPOS_DOCUMENTO.map(tipo => {
+    const aceitos = aprovados.filter(m => {
+      const doc = cacheDocumentos[m.alunoEmail + "_" + tipo.id];
+      return doc && doc.status === "validado";
+    }).length;
+    return barraDocumentoHtml(tipo, aceitos, total);
+  }).join("");
 }
 
 function renderCardPrazos(){

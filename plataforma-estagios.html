@@ -217,6 +217,7 @@ let currentUser = null; // { uid, email, name, role }
 let activeUnsubs = [];
 let currentTab = null;
 let selectedTurmaId = null;
+let selectedAlunoEmail = null;
 
 // caches usados nas telas de detalhe
 let cacheTurma = null;
@@ -456,6 +457,7 @@ function tabsForRole(role){
     { id: "dashboard", label: "Visão geral" },
     { id: "importar", label: "Importar Excel" },
     { id: "usuarios", label: "Usuários" },
+    { id: "alunos", label: "Alunos" },
     { id: "turmas-admin", label: "Turmas" },
     { id: "ajuda", label: "Configuração" }
   ];
@@ -480,6 +482,7 @@ function renderNav(){
 function switchTab(tabId){
   currentTab = tabId;
   selectedTurmaId = null;
+  selectedAlunoEmail = null;
   document.querySelectorAll("#nav-abas button").forEach(b => b.classList.toggle("ativa", b.dataset.tab === tabId));
   renderTab(tabId);
 }
@@ -490,6 +493,7 @@ function renderTab(tabId){
     "dashboard": renderAdminDashboard,
     "importar": renderAdminImportar,
     "usuarios": renderAdminUsuarios,
+    "alunos": renderAdminAlunos,
     "turmas-admin": renderAdminTurmas,
     "ajuda": renderAjuda,
     "turmas": renderProfessorTurmas,
@@ -798,6 +802,89 @@ function renderAdminUsuarios(){
     });
   });
   activeUnsubs.push(unsub);
+}
+
+function renderAdminAlunos(){
+  if (selectedAlunoEmail) return renderAdminAlunoDetalhe();
+  const conteudo = document.getElementById("conteudo");
+  conteudo.innerHTML = `
+    <div class="card">
+      <h2>Alunos</h2>
+      <div class="table-container" id="tabela-alunos-admin">Carregando...</div>
+    </div>`;
+
+  const unsub = db.collection("users").where("role", "==", "aluno").onSnapshot(snap => {
+    const alunos = snap.docs.map(d => d.data()).sort((a, b) => a.name.localeCompare(b.name));
+    const linhas = alunos.map(u => `
+      <tr class="linha-aluno-admin" data-email="${escapeHtml(u.email)}" style="cursor:pointer;">
+        <td>${escapeHtml(u.name)}</td>
+        <td>${escapeHtml(u.email)}</td>
+      </tr>`).join("");
+    document.getElementById("tabela-alunos-admin").innerHTML = `
+      <table>
+        <thead><tr><th>Nome</th><th>Email</th></tr></thead>
+        <tbody>${linhas || `<tr><td colspan="2">Nenhum aluno cadastrado ainda.</td></tr>`}</tbody>
+      </table>
+      <p style="font-size:.8em;color:#888;margin-top:8px;">Clique num aluno para ver as turmas e documentos dele.</p>`;
+    document.querySelectorAll(".linha-aluno-admin").forEach(row => {
+      row.addEventListener("click", () => { selectedAlunoEmail = row.dataset.email; renderAdminAlunoDetalhe(); });
+    });
+  });
+  activeUnsubs.push(unsub);
+}
+
+function renderAdminAlunoDetalhe(){
+  clearUnsubs();
+  const conteudo = document.getElementById("conteudo");
+  conteudo.innerHTML = `
+    <button class="voltar-link" id="btn-voltar-alunos">← Voltar para alunos</button>
+    <div class="card" id="cabecalho-aluno">
+      <h2>${escapeHtml(selectedAlunoEmail)}</h2>
+    </div>
+    <div class="card">
+      <h2>Turmas e documentos</h2>
+      <div id="turmas-aluno-admin">Carregando...</div>
+    </div>`;
+
+  document.getElementById("btn-voltar-alunos").addEventListener("click", () => { selectedAlunoEmail = null; renderAdminAlunos(); });
+
+  let matriculasAluno = [];
+  let documentosAluno = {};
+
+  function renderDetalheAluno(){
+    const container = document.getElementById("turmas-aluno-admin");
+    if (!container) return;
+    if (matriculasAluno.length === 0){
+      container.innerHTML = "<p>Esse aluno ainda não entrou em nenhuma turma.</p>";
+      return;
+    }
+    container.innerHTML = matriculasAluno.map(m => {
+      const infoMat = STATUS_MATRICULA_INFO[m.status];
+      const linhasDocs = m.status === "aprovado" ? TIPOS_DOCUMENTO.map(tipo => {
+        const doc = documentosAluno[m.turmaId + "_" + tipo.id];
+        const status = doc ? doc.status : "pendente";
+        const infoDoc = STATUS_DOC_INFO[status];
+        const link = doc && doc.arquivoURL ? ` <a href="${escapeHtml(doc.arquivoURL)}" target="_blank" rel="noopener" style="font-size:.85em;">ver arquivo</a>` : "";
+        return `<div class="doc-linha"><div class="doc-nome">${escapeHtml(tipo.nome)}</div><div>${badge(infoDoc)}${link}</div></div>`;
+      }).join("") : "<p style=\"font-size:.85em;color:#888;\">Documentos liberados depois que a matrícula for aprovada.</p>";
+      return `
+        <div style="border:1px solid #eee;border-radius:10px;padding:16px;margin-bottom:14px;">
+          <div class="secao-titulo"><h3 style="margin:0;">${escapeHtml(m.turmaNome)}</h3>${badge(infoMat)}</div>
+          ${linhasDocs}
+        </div>`;
+    }).join("");
+  }
+
+  const unsubMat = db.collection("matriculas").where("alunoEmail", "==", selectedAlunoEmail).onSnapshot(snap => {
+    matriculasAluno = snap.docs.map(d => d.data());
+    renderDetalheAluno();
+  });
+  const unsubDocs = db.collection("documentos").where("alunoEmail", "==", selectedAlunoEmail).onSnapshot(snap => {
+    documentosAluno = {};
+    snap.forEach(d => { const doc = d.data(); documentosAluno[doc.turmaId + "_" + doc.tipo] = doc; });
+    renderDetalheAluno();
+  });
+  activeUnsubs.push(unsubMat, unsubDocs);
 }
 
 function renderAdminTurmas(){

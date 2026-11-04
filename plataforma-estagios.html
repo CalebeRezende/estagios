@@ -1614,46 +1614,107 @@ async function enviarDocumento(tipo, file){
    8. TEXTOS DE AJUDA (regras / apps script)
    ====================================================================== */
 
+// IMPORTANTE: manter idêntico a regrasFirestoreTexto() em campos-estagio.html
+// (o Firestore só tem um conjunto de regras por projeto).
 function regrasFirestoreTexto(){
   return `rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ---------- Funções comuns ----------
     function logado() { return request.auth != null; }
-    function meuUsuario() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    function caminhoUsuario() { return /databases/$(database)/documents/users/$(request.auth.uid); }
+    // "membro" = aluno, professor ou admin da Plataforma de Estágios (tem documento em /users)
+    function souMembro() { return logado() && exists(caminhoUsuario()); }
+    function meuUsuario() { return get(caminhoUsuario()).data; }
+    function estouAtivo() { return souMembro() && meuUsuario().get('status', 'ativo') != 'bloqueado'; }
+    function souAdmin() { return estouAtivo() && meuUsuario().role == 'admin'; }
+    function souProfessor() { return estouAtivo() && meuUsuario().role == 'professor'; }
+    function meuEmail() { return request.auth.token.email.lower(); }
+    function emailAdminInicial() { return logado() && meuEmail() in ['calebemrnos@gmail.com']; }
+    function viaMicrosoft() { return request.auth.token.firebase.sign_in_provider == 'microsoft.com'; }
+    function caminhoConvite() { return /databases/$(database)/documents/invites/$(meuEmail()); }
+    function papelConvidado() { return get(caminhoConvite()).data.get('role', 'aluno'); }
+    function caminhoParceiro() { return /databases/$(database)/documents/parceiros/$(request.auth.uid); }
+    function souParceiroAtivo() {
+      return logado() && exists(caminhoParceiro()) && get(caminhoParceiro()).data.status in ['pendente', 'aprovado'];
     }
-    function souAdmin() { return logado() && meuUsuario().role == 'admin'; }
-    function souProfessor() { return logado() && meuUsuario().role == 'professor'; }
-    function estouAtivo() { return logado() && meuUsuario().get('status', 'ativo') != 'bloqueado'; }
 
+    // ---------- Plataforma de Estágios ----------
     match /users/{uid} {
-      allow read: if logado();
-      allow create: if logado() && request.auth.uid == uid;
-      allow update: if logado() && (request.auth.uid == uid || souAdmin());
+      allow read: if souMembro() || (logado() && request.auth.uid == uid);
+      // primeiro login: só cria com o papel que tem direito
+      allow create: if logado() && request.auth.uid == uid
+        && request.resource.data.email == meuEmail()
+        && (
+          emailAdminInicial()
+          || (exists(caminhoConvite()) && papelConvidado() == request.resource.data.role
+              && (viaMicrosoft() || request.resource.data.role == 'admin'))
+          || (viaMicrosoft() && !exists(caminhoConvite()) && request.resource.data.role == 'aluno')
+        );
+      // a própria pessoa não pode mudar o próprio papel nem se desbloquear
+      allow update: if souAdmin() || (logado() && request.auth.uid == uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.get('status', 'ativo') == resource.data.get('status', 'ativo'));
       allow delete: if souAdmin();
     }
 
     match /invites/{email} {
-      allow read: if logado();
+      allow read: if souMembro() || (logado() && meuEmail() == email);
       allow write: if souAdmin();
     }
 
     match /turmas/{turmaId} {
-      allow read: if logado() && estouAtivo();
+      allow read: if estouAtivo();
       allow create, update, delete: if souAdmin();
     }
 
     match /matriculas/{matriculaId} {
-      allow read: if logado() && estouAtivo();
-      allow create: if logado() && estouAtivo() && request.resource.data.alunoEmail == request.auth.token.email;
+      allow read: if estouAtivo();
+      allow create: if estouAtivo() && request.resource.data.alunoEmail == request.auth.token.email;
       allow update: if estouAtivo() && (souProfessor() || souAdmin() || resource.data.alunoEmail == request.auth.token.email);
     }
 
     match /documentos/{documentoId} {
-      allow read: if logado() && estouAtivo();
-      allow create, update: if logado() && estouAtivo();
-      allow delete: if estouAtivo() && (souProfessor() || souAdmin());
+      allow read: if estouAtivo();
+      allow create, update: if estouAtivo();
+      allow delete: if souProfessor() || souAdmin();
+    }
+
+    // ---------- Portal de Campos de Estágio ----------
+
+    // lista pública de disciplinas (aparece antes do login)
+    match /disciplinasEstagio/{id} {
+      allow read: if true;
+      allow write: if souAdmin();
+    }
+
+    // um documento por conta (id = uid); só a coordenação muda o status
+    match /parceiros/{uid} {
+      allow read: if souAdmin() || (logado() && request.auth.uid == uid);
+      allow create: if logado() && request.auth.uid == uid
+        && request.resource.data.status == 'pendente'
+        && request.resource.data.email == meuEmail();
+      allow update: if souAdmin() || (logado() && request.auth.uid == uid
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.get('observacaoAdmin', '') == resource.data.get('observacaoAdmin', ''));
+      allow delete: if souAdmin();
+    }
+
+    match /ofertasVagas/{id} {
+      allow read: if souAdmin() || (logado() && resource.data.parceiroUid == request.auth.uid);
+      allow create: if souParceiroAtivo() && request.resource.data.parceiroUid == request.auth.uid;
+      allow update: if souAdmin() || (souParceiroAtivo()
+        && resource.data.parceiroUid == request.auth.uid
+        && request.resource.data.parceiroUid == request.auth.uid);
+      allow delete: if souAdmin() || (souParceiroAtivo() && resource.data.parceiroUid == request.auth.uid);
+    }
+
+    // encaminhamento de estudantes: só a coordenação cria; o parceiro só vê os seus
+    match /alocacoesEstagio/{id} {
+      allow read: if souAdmin() || (logado() && resource.data.parceiroUid == request.auth.uid);
+      allow write: if souAdmin();
     }
   }
 }`;

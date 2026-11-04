@@ -1,0 +1,1672 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal de Campos de Estágio</title>
+<style>
+  :root{
+    --azul-escuro:#2c3e50;
+    --azul:#2980b9;
+    --fundo:#f4f6f9;
+    --verde:#27ae60;
+    --amarelo:#f39c12;
+    --vermelho:#e74c3c;
+    --cinza:#95a5a6;
+  }
+  *{box-sizing:border-box;}
+  body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:var(--fundo);color:#2d2d2d;margin:0;}
+  .hidden{display:none !important;}
+  a{color:var(--azul);}
+  h1,h2,h3{color:var(--azul-escuro);}
+  code{background:#eef3f8;padding:2px 6px;border-radius:4px;}
+
+  header.topo{background:var(--azul-escuro);color:#fff;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+  header.topo h1{font-size:1.2em;margin:0;color:#fff;}
+  .user-info{display:flex;align-items:center;gap:10px;font-size:.9em;flex-wrap:wrap;}
+  .papel-tag{background:var(--azul);padding:3px 10px;border-radius:12px;font-size:.8em;text-transform:uppercase;letter-spacing:.03em;}
+
+  nav.abas{display:flex;gap:6px;background:#fff;padding:8px 16px;border-bottom:1px solid #ddd;flex-wrap:wrap;position:sticky;top:0;z-index:50;}
+  nav.abas button{background:none;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:.95em;color:#555;font-weight:600;}
+  nav.abas button:hover{background:#f0f3f7;}
+  nav.abas button.ativa{background:var(--azul);color:#fff;}
+
+  main{padding:24px 16px;max-width:1100px;margin:0 auto;}
+  .card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:20px;}
+  .grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;}
+  .grid-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px;margin-bottom:20px;}
+  .stat-box{background:#fff;border-radius:10px;padding:18px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+  .stat-box .num{font-size:2em;font-weight:bold;color:var(--azul);}
+  .stat-box .lbl{color:#777;font-size:.85em;}
+
+  .item-card{background:#fff;border-radius:10px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.08);border-left:5px solid var(--azul);}
+  .item-card h3{margin:0 0 8px 0;font-size:1.05em;}
+  .item-card p{margin:4px 0;font-size:.9em;}
+  .item-card.encerrada{border-left-color:var(--cinza);opacity:.8;}
+
+  .table-container{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;min-width:520px;}
+  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid #eee;vertical-align:middle;}
+  thead{background:var(--azul-escuro);color:#fff;}
+  tbody tr:hover{background:#f7f9fb;}
+  tr.clicavel{cursor:pointer;}
+
+  .badge{color:#fff;padding:3px 10px;border-radius:12px;font-size:.78em;white-space:nowrap;display:inline-block;}
+  .btn{background:var(--azul);color:#fff;border:none;padding:9px 16px;border-radius:6px;cursor:pointer;font-size:.88em;font-weight:600;}
+  .btn:hover{opacity:.88;}
+  .btn.secundario{background:#7f8c8d;}
+  .btn.perigo{background:var(--vermelho);}
+  .btn.sucesso{background:var(--verde);}
+  .btn.pequeno{padding:5px 10px;font-size:.8em;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .btn-group{display:flex;gap:6px;flex-wrap:wrap;}
+
+  input[type=text],input[type=email],input[type=password],input[type=tel],input[type=number],input[type=date],textarea,select{padding:9px 10px;border:1px solid #ccc;border-radius:6px;font-size:.95em;width:100%;font-family:inherit;background:#fff;}
+  .linha-form{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;}
+  .linha-form>div{flex:1;min-width:170px;}
+  label{font-size:.83em;color:#555;display:block;margin-bottom:4px;font-weight:600;}
+  .checks{display:flex;flex-wrap:wrap;gap:8px 18px;}
+  .checks label{font-weight:normal;font-size:.9em;color:#333;display:flex;align-items:center;gap:6px;margin:0;}
+
+  .toast-container{position:fixed;bottom:20px;right:20px;z-index:2000;display:flex;flex-direction:column;gap:10px;align-items:flex-end;}
+  .toast{background:var(--azul-escuro);color:#fff;padding:14px 20px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);max-width:340px;font-size:.9em;}
+  .toast.erro{background:var(--vermelho);}
+  .toast.sucesso{background:var(--verde);}
+
+  .btn-sso{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:1em;margin-bottom:12px;font-weight:600;color:#444;}
+  .btn-sso:hover{background:#f5f5f5;}
+
+  .spinner-overlay{position:fixed;inset:0;background:rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;z-index:1500;}
+  .spinner{width:44px;height:44px;border:5px solid #ddd;border-top-color:var(--azul);border-radius:50%;animation:girar 1s linear infinite;}
+  @keyframes girar{to{transform:rotate(360deg);}}
+
+  textarea.codigo-copia{width:100%;min-height:200px;font-family:'Consolas',monospace;font-size:.78em;background:#282c34;color:#abb2bf;padding:14px;border-radius:8px;border:none;resize:vertical;}
+  .aviso{background:#fff3cd;border-left:5px solid var(--amarelo);padding:14px;border-radius:6px;margin-bottom:16px;}
+  .info-box{background:#eaf4fc;border-left:5px solid var(--azul);padding:14px;border-radius:6px;margin-bottom:16px;}
+  .sucesso-box{background:#e8f8ef;border-left:5px solid var(--verde);padding:14px;border-radius:6px;margin-bottom:16px;}
+  .erro-box{background:#fdecea;border-left:5px solid var(--vermelho);padding:14px;border-radius:6px;margin-bottom:16px;}
+  footer.rodape{text-align:center;padding:24px;color:#999;font-size:.8em;}
+  .voltar-link{background:none;border:none;color:var(--azul);cursor:pointer;font-size:.9em;padding:0;margin-bottom:14px;font-weight:600;}
+  .secao-titulo{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+  .secao-titulo h2{margin:0;}
+  .muted{color:#777;font-size:.85em;}
+
+  /* Página pública */
+  .hero{background:linear-gradient(135deg,var(--azul-escuro),var(--azul));color:#fff;padding:48px 16px 56px;}
+  .hero-inner{max-width:1100px;margin:0 auto;display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start;}
+  .hero-texto{flex:1 1 380px;}
+  .hero h1{color:#fff;font-size:2em;margin:0 0 12px;}
+  .hero p{font-size:1.05em;line-height:1.5;opacity:.95;}
+  .login-box{flex:0 1 380px;background:#fff;color:#2d2d2d;padding:28px;border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.2);width:100%;}
+  .login-box h2{margin-top:0;font-size:1.2em;}
+  .passos{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;}
+  .passo{background:#fff;border-radius:10px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+  .passo .n{display:inline-flex;width:30px;height:30px;border-radius:50%;background:var(--azul);color:#fff;align-items:center;justify-content:center;font-weight:bold;margin-bottom:8px;}
+  .disc-publica{background:#fff;border-radius:10px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,.08);border-left:5px solid var(--verde);}
+  .disc-publica b{color:var(--azul-escuro);}
+
+  /* Escolha de tipo de parceiro */
+  .tipos-parceiro{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:18px;}
+  .tipo-opcao{border:2px solid #ddd;border-radius:10px;padding:16px;cursor:pointer;background:#fff;text-align:left;font-family:inherit;}
+  .tipo-opcao:hover{border-color:var(--azul);}
+  .tipo-opcao.selecionado{border-color:var(--azul);background:#eaf4fc;}
+  .tipo-opcao .icone{font-size:1.8em;}
+  .tipo-opcao b{display:block;margin:6px 0 4px;color:var(--azul-escuro);}
+  .tipo-opcao span{font-size:.85em;color:#666;}
+
+  /* Modal */
+  .modal-fundo{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1200;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;}
+  .modal{background:#fff;border-radius:12px;padding:24px;max-width:640px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3);}
+  .modal h2{margin-top:0;}
+
+  .dados-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px 20px;}
+  .dados-lista div{font-size:.9em;}
+  .dados-lista span{display:block;font-size:.78em;color:#888;text-transform:uppercase;letter-spacing:.03em;}
+  .barra-vagas{height:8px;background:#e6e9ee;border-radius:5px;overflow:hidden;margin-top:6px;}
+  .barra-vagas div{height:100%;background:var(--verde);}
+
+  @media (max-width:600px){
+    .hero h1{font-size:1.5em;}
+    header.topo{padding:12px 16px;}
+  }
+</style>
+</head>
+<body>
+
+<div id="spinner" class="spinner-overlay hidden"><div class="spinner"></div></div>
+<div id="toast-container" class="toast-container"></div>
+<div id="modal-raiz"></div>
+
+<!-- PÁGINA PÚBLICA / LOGIN -->
+<div id="tela-publica" class="hidden">
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-texto">
+        <h1>🏫 Portal de Campos de Estágio</h1>
+        <p>Secretarias de Educação, escolas e professoras: cadastrem-se para <b>receber estagiários</b> dos nossos cursos de formação de professores.</p>
+        <p>Você informa quais disciplinas de estágio pode acolher, quantas vagas tem e em quais turnos. A coordenação de estágios analisa o cadastro e encaminha os estudantes.</p>
+      </div>
+      <div class="login-box">
+        <div id="bloco-entrar">
+          <h2>Entrar</h2>
+          <button class="btn-sso" id="btn-login-google">🟦&nbsp; Entrar com Google</button>
+          <div style="text-align:center;color:#999;font-size:.8em;margin:4px 0 10px;">ou com e-mail e senha</div>
+          <div style="margin-bottom:10px;"><label>E-mail</label><input type="email" id="input-email-login" autocomplete="email"></div>
+          <div style="margin-bottom:14px;"><label>Senha</label><input type="password" id="input-senha-login" autocomplete="current-password"></div>
+          <button class="btn" id="btn-entrar-senha" style="width:100%;">Entrar</button>
+          <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:12px;">
+            <button class="voltar-link" id="btn-ir-criar-conta" style="margin:0;">Criar conta</button>
+            <button class="voltar-link" id="btn-esqueci-senha" style="margin:0;color:#888;">Esqueci minha senha</button>
+          </div>
+        </div>
+        <div id="bloco-criar-conta" class="hidden">
+          <h2>Criar conta</h2>
+          <p class="muted" style="margin-top:0;">Depois de criar a conta você preenche o cadastro da instituição (ou o seu, se for professora).</p>
+          <div style="margin-bottom:10px;"><label>E-mail</label><input type="email" id="input-email-cadastro" autocomplete="email"></div>
+          <div style="margin-bottom:10px;"><label>Senha (mínimo 6 caracteres)</label><input type="password" id="input-senha-cadastro" autocomplete="new-password"></div>
+          <div style="margin-bottom:14px;"><label>Confirme a senha</label><input type="password" id="input-senha-cadastro-2" autocomplete="new-password"></div>
+          <button class="btn" id="btn-criar-conta" style="width:100%;">Criar conta</button>
+          <button class="btn-sso" id="btn-login-google-2" style="margin-top:12px;">🟦&nbsp; Ou continuar com Google</button>
+          <button class="voltar-link" id="btn-ir-entrar" style="margin-top:4px;">← Já tenho conta</button>
+        </div>
+      </div>
+    </div>
+  </section>
+  <main>
+    <h2>Como funciona</h2>
+    <div class="passos">
+      <div class="passo"><div class="n">1</div><br><b>Crie sua conta</b><p class="muted">Com Google ou e-mail e senha.</p></div>
+      <div class="passo"><div class="n">2</div><br><b>Preencha o cadastro</b><p class="muted">Secretaria, escola ou professora — com dados de contato e endereço.</p></div>
+      <div class="passo"><div class="n">3</div><br><b>Ofereça vagas</b><p class="muted">Escolha as disciplinas, a quantidade de estagiários e os turnos.</p></div>
+      <div class="passo"><div class="n">4</div><br><b>Receba os estagiários</b><p class="muted">Após a análise, a coordenação encaminha os estudantes e você vê quem foi alocado.</p></div>
+    </div>
+    <h2 style="margin-top:32px;">Disciplinas com estágio disponível</h2>
+    <div class="grid-cards" id="lista-disciplinas-publica"><p class="muted">Carregando...</p></div>
+  </main>
+  <footer class="rodape">Portal de Campos de Estágio — os dados informados são usados exclusivamente para a organização dos estágios curriculares.</footer>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+  <header class="topo">
+    <h1>🏫 Portal de Campos de Estágio</h1>
+    <div class="user-info">
+      <span id="txt-user-nome"></span>
+      <span class="papel-tag" id="txt-user-papel"></span>
+      <button class="btn secundario pequeno" id="btn-logout">Sair</button>
+    </div>
+  </header>
+  <nav class="abas" id="nav-abas"></nav>
+  <main>
+    <div id="banner-status"></div>
+    <div id="conteudo"></div>
+  </main>
+  <footer class="rodape">Portal de Campos de Estágio</footer>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<script>
+'use strict';
+
+/* ======================================================================
+   1. CONFIGURAÇÃO — mesmo projeto Firebase da Plataforma de Estágios
+   ====================================================================== */
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAJZN-jus76UYQsHFs9ElW2vRYVj7rDxuY",
+  authDomain: "plataforma-estagios.firebaseapp.com",
+  projectId: "plataforma-estagios",
+  storageBucket: "plataforma-estagios.firebasestorage.app",
+  messagingSenderId: "441854847575",
+  appId: "1:441854847575:web:6ff4494420c34d4281d112"
+};
+
+// Mesma lista da plataforma-estagios.html. Admins promovidos pela aba
+// "Usuários" da plataforma também têm acesso administrativo aqui.
+const ADMIN_EMAILS = ["calebemrnos@gmail.com"];
+
+const TIPOS_PARCEIRO = {
+  secretaria: { label: "Secretaria de Educação", icone: "🏛️", descricao: "Rede municipal ou estadual que pode distribuir estagiários entre suas unidades.",
+                nomeLabel: "Nome da Secretaria / órgão", nomePlaceholder: "Ex: Secretaria Municipal de Educação de Osasco" },
+  escola:     { label: "Escola", icone: "🏫", descricao: "Unidade escolar (pública ou privada) que recebe estagiários diretamente.",
+                nomeLabel: "Nome da escola", nomePlaceholder: "Ex: EMEF Prof. João da Silva" },
+  professora: { label: "Professora", icone: "👩‍🏫", descricao: "Professora regente que deseja receber estagiários na própria turma.",
+                nomeLabel: "Seu nome completo", nomePlaceholder: "" }
+};
+
+const REDES = ["Municipal", "Estadual", "Federal", "Privada", "Conveniada / filantrópica"];
+const SEGMENTOS = [
+  "Educação Infantil – creche (0 a 3 anos)",
+  "Educação Infantil – pré-escola (4 e 5 anos)",
+  "Ensino Fundamental – anos iniciais",
+  "Ensino Fundamental – anos finais",
+  "Ensino Médio",
+  "EJA",
+  "Educação Especial / AEE",
+  "Gestão escolar"
+];
+const TURNOS = ["Manhã", "Tarde", "Noite", "Integral"];
+const UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
+
+const STATUS_PARCEIRO_INFO = {
+  pendente: { label: "Em análise", cor: "#f39c12" },
+  aprovado: { label: "Aprovado",   cor: "#27ae60" },
+  recusado: { label: "Recusado",   cor: "#e74c3c" }
+};
+const STATUS_OFERTA_INFO = {
+  aberta:    { label: "Aberta",    cor: "#27ae60" },
+  encerrada: { label: "Encerrada", cor: "#95a5a6" }
+};
+
+/* ======================================================================
+   2. ESTADO E UTILITÁRIOS
+   ====================================================================== */
+
+let auth, db;
+let currentUser = null;  // { uid, email, name, role: "admin" | "parceiro" }
+let currentTab = null;
+let unsubsGlobais = [];   // listeners que vivem enquanto o usuário está logado
+let refreshAtual = null;  // re-renderiza as partes dinâmicas da aba aberta
+let selectedParceiroUid = null;
+
+// cache alimentado pelos listeners
+const store = {
+  disciplinas: [],       // [{id, ...}]
+  parceiro: null,        // parceiro logado (quando não é admin)
+  parceiros: [],         // admin
+  ofertas: [],
+  alocacoes: [],
+  turmas: [],            // admin (para vincular disciplinas e calcular demanda)
+  matriculasAprovadas: [] // admin
+};
+
+function escapeHtml(str){
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+function showLoading(){ document.getElementById("spinner").classList.remove("hidden"); }
+function hideLoading(){ document.getElementById("spinner").classList.add("hidden"); }
+function toast(msg, tipo){
+  const container = document.getElementById("toast-container");
+  const div = document.createElement("div");
+  div.className = "toast" + (tipo ? " " + tipo : "");
+  div.textContent = msg;
+  container.appendChild(div);
+  setTimeout(() => div.remove(), 5000);
+}
+function fmtData(ts){
+  if (!ts) return "—";
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleDateString("pt-BR");
+}
+function fmtDataSimples(iso){
+  if (!iso) return "—";
+  const [a, m, d] = iso.split("-");
+  return `${d}/${m}/${a}`;
+}
+function emailValido(email){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
+function badge(info){ return `<span class="badge" style="background:${info.cor}">${escapeHtml(info.label)}</span>`; }
+function val(id){ const el = document.getElementById(id); return el ? el.value.trim() : ""; }
+function checados(nome, raiz){ return Array.from((raiz || document).querySelectorAll(`input[name="${nome}"]:checked`)).map(i => i.value); }
+const serverTs = () => firebase.firestore.FieldValue.serverTimestamp();
+function normalizar(s){ return (s || "").toString().normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim(); }
+function porNome(a, b){ return (a.nome || "").localeCompare(b.nome || "", "pt-BR"); }
+
+function limparListeners(){
+  unsubsGlobais.forEach(u => { try { u(); } catch(e){} });
+  unsubsGlobais = [];
+}
+function disparaRefresh(){ if (refreshAtual) refreshAtual(); renderBannerStatus(); }
+
+function disciplinasAtivas(){ return store.disciplinas.filter(d => d.ativa !== false).sort(porNome); }
+function alocacoesDaOferta(ofertaId){ return store.alocacoes.filter(a => a.ofertaId === ofertaId); }
+function vagasRestantes(oferta){ return Math.max((Number(oferta.vagas) || 0) - alocacoesDaOferta(oferta.id).length, 0); }
+
+/* ---------- Modal genérico ---------- */
+function abrirModal(html, aoMontar){
+  const raiz = document.getElementById("modal-raiz");
+  raiz.innerHTML = `<div class="modal-fundo" id="modal-fundo"><div class="modal">${html}</div></div>`;
+  document.getElementById("modal-fundo").addEventListener("click", ev => { if (ev.target.id === "modal-fundo") fecharModal(); });
+  raiz.querySelectorAll("[data-fechar-modal]").forEach(b => b.addEventListener("click", fecharModal));
+  if (aoMontar) aoMontar(raiz);
+}
+function fecharModal(){ document.getElementById("modal-raiz").innerHTML = ""; }
+
+/* ======================================================================
+   3. AUTENTICAÇÃO
+   ====================================================================== */
+
+function initFirebase(){
+  firebase.initializeApp(firebaseConfig);
+  auth = firebase.auth();
+  db = firebase.firestore();
+  auth.onAuthStateChanged(onAuthChange);
+}
+
+async function onAuthChange(user){
+  limparListeners();
+  refreshAtual = null;
+  currentTab = null;
+  fecharModal();
+  if (!user){
+    currentUser = null;
+    document.getElementById("app").classList.add("hidden");
+    document.getElementById("tela-publica").classList.remove("hidden");
+    document.getElementById("bloco-criar-conta").classList.add("hidden");
+    document.getElementById("bloco-entrar").classList.remove("hidden");
+    ["input-senha-login", "input-senha-cadastro", "input-senha-cadastro-2"].forEach(id => { document.getElementById(id).value = ""; });
+    carregarDisciplinasPublicas();
+    return;
+  }
+  showLoading();
+  try {
+    currentUser = await resolverPerfil(user);
+    document.getElementById("tela-publica").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("txt-user-nome").textContent = currentUser.name;
+    document.getElementById("txt-user-papel").textContent = currentUser.role === "admin" ? "coordenação" : "parceiro";
+    if (currentUser.role === "admin") iniciarAdmin(); else iniciarParceiro();
+  } catch (e){
+    console.error(e);
+    toast(e.message === "CONTA_BLOQUEADA" ? "Sua conta foi bloqueada." : "Erro ao carregar seu perfil: " + e.message, "erro");
+    auth.signOut();
+  } finally { hideLoading(); }
+}
+
+// Admin = usuário da Plataforma de Estágios com papel admin (ou e-mail na lista ADMIN_EMAILS).
+// Qualquer outra conta é tratada como parceiro (secretaria, escola ou professora).
+async function resolverPerfil(user){
+  const email = (user.email || "").toLowerCase();
+  const userRef = db.collection("users").doc(user.uid);
+  const snap = await userRef.get();
+  if (snap.exists){
+    const u = snap.data();
+    if (u.role === "admin"){
+      if (u.status === "bloqueado") throw new Error("CONTA_BLOQUEADA");
+      return { uid: user.uid, email, name: u.name || user.displayName || email, role: "admin" };
+    }
+  } else if (ADMIN_EMAILS.includes(email)){
+    const name = user.displayName || email;
+    await userRef.set({ name, email, role: "admin", status: "ativo", criadoEm: serverTs() });
+    return { uid: user.uid, email, name, role: "admin" };
+  }
+  return { uid: user.uid, email, name: user.displayName || email, role: "parceiro" };
+}
+
+const MENSAGENS_ERRO_AUTH = {
+  "auth/email-already-in-use": "Este e-mail já tem conta. Use \"Entrar\".",
+  "auth/invalid-email": "E-mail inválido.",
+  "auth/weak-password": "Senha muito fraca (mínimo 6 caracteres).",
+  "auth/wrong-password": "Senha incorreta.",
+  "auth/user-not-found": "Não existe conta com esse e-mail. Crie uma conta primeiro.",
+  "auth/invalid-credential": "E-mail ou senha incorretos.",
+  "auth/account-exists-with-different-credential": "Esse e-mail já está cadastrado com outro método de login.",
+  "auth/popup-closed-by-user": "",
+  "auth/cancelled-popup-request": ""
+};
+function erroLogin(e){
+  console.error(e);
+  const msg = MENSAGENS_ERRO_AUTH[e.code];
+  if (msg === "") return;
+  toast("Não foi possível entrar: " + (msg || e.message), "erro");
+}
+function entrarGoogle(){
+  showLoading();
+  auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(erroLogin).finally(hideLoading);
+}
+async function entrarComSenha(){
+  const email = val("input-email-login").toLowerCase();
+  const senha = document.getElementById("input-senha-login").value;
+  if (!emailValido(email) || !senha) return toast("Informe e-mail e senha", "erro");
+  showLoading();
+  try { await auth.signInWithEmailAndPassword(email, senha); }
+  catch (e){ erroLogin(e); }
+  finally { hideLoading(); }
+}
+async function criarConta(){
+  const email = val("input-email-cadastro").toLowerCase();
+  const senha = document.getElementById("input-senha-cadastro").value;
+  const senha2 = document.getElementById("input-senha-cadastro-2").value;
+  if (!emailValido(email)) return toast("Informe um e-mail válido", "erro");
+  if (senha.length < 6) return toast("A senha precisa ter pelo menos 6 caracteres", "erro");
+  if (senha !== senha2) return toast("As senhas não conferem", "erro");
+  showLoading();
+  try { await auth.createUserWithEmailAndPassword(email, senha); }
+  catch (e){ erroLogin(e); }
+  finally { hideLoading(); }
+}
+async function esqueciSenha(){
+  const email = prompt("Digite o e-mail da sua conta:");
+  if (!email) return;
+  try {
+    await auth.sendPasswordResetEmail(email.trim().toLowerCase());
+    toast("Enviamos um link de redefinição de senha para esse e-mail.", "sucesso");
+  } catch (e){ erroLogin(e); }
+}
+
+/* ---------- Página pública ---------- */
+function carregarDisciplinasPublicas(){
+  const container = document.getElementById("lista-disciplinas-publica");
+  db.collection("disciplinasEstagio").get().then(snap => {
+    const lista = snap.docs.map(d => d.data()).filter(d => d.ativa !== false).sort(porNome);
+    container.innerHTML = lista.map(d => `
+      <div class="disc-publica">
+        <b>${escapeHtml(d.nome)}</b>
+        ${d.segmento ? `<p class="muted" style="margin:6px 0 0;">${escapeHtml(d.segmento)}</p>` : ""}
+        ${d.descricao ? `<p style="font-size:.88em;margin:6px 0 0;">${escapeHtml(d.descricao)}</p>` : ""}
+        ${d.cargaHoraria ? `<p class="muted" style="margin:6px 0 0;">Carga horária: ${escapeHtml(d.cargaHoraria)}</p>` : ""}
+      </div>`).join("") || `<p class="muted">A lista de disciplinas será publicada em breve.</p>`;
+  }).catch(e => {
+    console.error(e);
+    container.innerHTML = `<p class="muted">Não foi possível carregar as disciplinas agora.</p>`;
+  });
+}
+
+/* ======================================================================
+   4. NAVEGAÇÃO
+   ====================================================================== */
+
+function renderNav(tabs){
+  const nav = document.getElementById("nav-abas");
+  nav.classList.toggle("hidden", tabs.length === 0);
+  nav.innerHTML = tabs.map(t => `<button data-tab="${t.id}">${escapeHtml(t.label)}</button>`).join("");
+  nav.querySelectorAll("button").forEach(b => b.addEventListener("click", () => abrirAba(b.dataset.tab)));
+}
+function abrirAba(tabId){
+  currentTab = tabId;
+  selectedParceiroUid = null;
+  refreshAtual = null;
+  fecharModal();
+  document.querySelectorAll("#nav-abas button").forEach(b => b.classList.toggle("ativa", b.dataset.tab === tabId));
+  const mapa = {
+    "p-vagas": renderParceiroVagas,
+    "p-estagiarios": renderParceiroEstagiarios,
+    "p-cadastro": renderParceiroCadastro,
+    "a-geral": renderAdminGeral,
+    "a-parceiros": renderAdminParceiros,
+    "a-vagas": renderAdminVagas,
+    "a-disciplinas": renderAdminDisciplinas,
+    "a-config": renderAdminConfig
+  };
+  (mapa[tabId] || (() => {}))();
+  renderBannerStatus();
+}
+
+/* ======================================================================
+   5. PARCEIRO (secretaria / escola / professora)
+   ====================================================================== */
+
+function iniciarParceiro(){
+  let carregouParceiro = false;
+  store.parceiro = null;
+  unsubsGlobais.push(db.collection("disciplinasEstagio").onSnapshot(snap => {
+    store.disciplinas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    disparaRefresh();
+  }));
+  unsubsGlobais.push(db.collection("parceiros").doc(currentUser.uid).onSnapshot(doc => {
+    const tinhaAntes = !!store.parceiro;
+    store.parceiro = doc.exists ? doc.data() : null;
+    const temAgora = !!store.parceiro;
+    if (temAgora){
+      document.getElementById("txt-user-nome").textContent = store.parceiro.nome;
+      document.getElementById("txt-user-papel").textContent = TIPOS_PARCEIRO[store.parceiro.tipo].label;
+    }
+    if (!carregouParceiro || temAgora !== tinhaAntes){
+      carregouParceiro = true;
+      if (!temAgora){
+        renderNav([]);
+        refreshAtual = null;
+        renderBannerStatus();
+        renderCadastroInicial();
+      } else {
+        renderNav([
+          { id: "p-vagas", label: "Minhas vagas" },
+          { id: "p-estagiarios", label: "Estagiários" },
+          { id: "p-cadastro", label: "Meu cadastro" }
+        ]);
+        abrirAba("p-vagas");
+      }
+    } else {
+      disparaRefresh();
+    }
+  }, e => { console.error(e); toast("Erro ao carregar seu cadastro: " + e.message, "erro"); }));
+  unsubsGlobais.push(db.collection("ofertasVagas").where("parceiroUid", "==", currentUser.uid).onSnapshot(snap => {
+    store.ofertas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    disparaRefresh();
+  }));
+  unsubsGlobais.push(db.collection("alocacoesEstagio").where("parceiroUid", "==", currentUser.uid).onSnapshot(snap => {
+    store.alocacoes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    disparaRefresh();
+  }));
+}
+
+function renderBannerStatus(){
+  const el = document.getElementById("banner-status");
+  if (!el) return;
+  const p = store.parceiro;
+  if (!currentUser || currentUser.role === "admin" || !p){ el.innerHTML = ""; return; }
+  if (p.status === "pendente"){
+    el.innerHTML = `<div class="aviso"><b>Cadastro em análise.</b> A coordenação de estágios vai revisar seus dados. Enquanto isso você já pode cadastrar e ajustar suas vagas.</div>`;
+  } else if (p.status === "aprovado"){
+    el.innerHTML = `<div class="sucesso-box"><b>Cadastro aprovado.</b> Suas vagas estão visíveis para a coordenação, que vai encaminhar os estagiários.</div>`;
+  } else if (p.status === "recusado"){
+    el.innerHTML = `<div class="erro-box"><b>Cadastro não aprovado.</b> ${p.observacaoAdmin ? "Motivo: " + escapeHtml(p.observacaoAdmin) + ". " : ""}Corrija os dados em "Meu cadastro" e entre em contato com a coordenação de estágios.</div>`;
+  }
+}
+
+/* ---------- Formulário de cadastro (usado no primeiro acesso e na edição) ---------- */
+
+function formCadastroHtml(p, comVagas){
+  p = p || {};
+  const tipo = p.tipo || "";
+  const opcoesTipo = Object.entries(TIPOS_PARCEIRO).map(([id, t]) => `
+    <button type="button" class="tipo-opcao ${tipo === id ? "selecionado" : ""}" data-tipo="${id}">
+      <div class="icone">${t.icone}</div><b>${escapeHtml(t.label)}</b><span>${escapeHtml(t.descricao)}</span>
+    </button>`).join("");
+  const sel = (lista, atual) => lista.map(v => `<option ${v === atual ? "selected" : ""}>${escapeHtml(v)}</option>`).join("");
+  const segs = p.segmentos || [];
+  const turnosP = p.turnos || [];
+
+  return `
+    <h3>1. Quem está se cadastrando?</h3>
+    <div class="tipos-parceiro" id="opcoes-tipo">${opcoesTipo}</div>
+    <input type="hidden" id="cad-tipo" value="${escapeHtml(tipo)}">
+
+    <div id="cad-campos" class="${tipo ? "" : "hidden"}">
+      <h3>2. Dados de identificação</h3>
+      <div class="linha-form">
+        <div><label id="lbl-cad-nome">Nome</label><input type="text" id="cad-nome" value="${escapeHtml(p.nome)}"></div>
+        <div class="so-secretaria so-escola"><label>Nome do(a) responsável pelos estágios</label><input type="text" id="cad-responsavel" value="${escapeHtml(p.responsavelNome)}"></div>
+        <div class="so-secretaria so-escola"><label>Cargo do(a) responsável</label><input type="text" id="cad-cargo" placeholder="Ex: Coordenadora pedagógica" value="${escapeHtml(p.cargo)}"></div>
+      </div>
+      <div class="linha-form">
+        <div class="so-professora"><label>Escola onde leciona</label><input type="text" id="cad-escola-atuacao" value="${escapeHtml(p.escolaAtuacao)}"></div>
+        <div class="so-professora"><label>Turma / ano em que leciona</label><input type="text" id="cad-turma-atuacao" placeholder="Ex: Infantil II, 3º ano B" value="${escapeHtml(p.turmaAtuacao)}"></div>
+        <div class="so-escola"><label>Código INEP (opcional)</label><input type="text" id="cad-inep" value="${escapeHtml(p.codigoInep)}"></div>
+        <div class="so-secretaria"><label>Nº aproximado de escolas na rede</label><input type="number" min="0" id="cad-num-escolas" value="${escapeHtml(p.numeroEscolas)}"></div>
+        <div><label>Rede</label><select id="cad-rede"><option value="">Selecione</option>${sel(REDES, p.rede)}</select></div>
+      </div>
+
+      <h3>3. Contato e endereço</h3>
+      <div class="linha-form">
+        <div><label>E-mail de contato</label><input type="email" id="cad-email-contato" value="${escapeHtml(p.emailContato || currentUser.email)}"></div>
+        <div><label>Telefone / WhatsApp</label><input type="tel" id="cad-telefone" placeholder="(11) 90000-0000" value="${escapeHtml(p.telefone)}"></div>
+      </div>
+      <div class="linha-form">
+        <div style="flex:2;"><label>Endereço</label><input type="text" id="cad-endereco" placeholder="Rua, número" value="${escapeHtml(p.endereco)}"></div>
+        <div><label>Bairro</label><input type="text" id="cad-bairro" value="${escapeHtml(p.bairro)}"></div>
+      </div>
+      <div class="linha-form">
+        <div style="flex:2;"><label>Cidade</label><input type="text" id="cad-cidade" value="${escapeHtml(p.cidade)}"></div>
+        <div><label>UF</label><select id="cad-uf">${sel(UFS, p.uf || "SP")}</select></div>
+        <div><label>CEP</label><input type="text" id="cad-cep" value="${escapeHtml(p.cep)}"></div>
+      </div>
+
+      <h3>4. Atendimento</h3>
+      <label>Segmentos atendidos</label>
+      <div class="checks" style="margin-bottom:14px;">
+        ${SEGMENTOS.map(s => `<label><input type="checkbox" name="cad-segmentos" value="${escapeHtml(s)}" ${segs.includes(s) ? "checked" : ""}> ${escapeHtml(s)}</label>`).join("")}
+      </div>
+      <label>Turnos de funcionamento</label>
+      <div class="checks" style="margin-bottom:14px;">
+        ${TURNOS.map(t => `<label><input type="checkbox" name="cad-turnos" value="${t}" ${turnosP.includes(t) ? "checked" : ""}> ${t}</label>`).join("")}
+      </div>
+      <div><label>Observações (opcional)</label><textarea id="cad-observacoes" rows="3" placeholder="Ex: exigências para entrada na escola, documentos solicitados, melhores dias">${escapeHtml(p.observacoes)}</textarea></div>
+
+      ${comVagas ? `
+        <h3 style="margin-top:22px;">5. Disciplinas que pode receber</h3>
+        <p class="muted">Marque as disciplinas de estágio para as quais você pode receber estudantes e informe quantos. Você pode detalhar ou alterar depois, em "Minhas vagas".</p>
+        <div id="cad-vagas"></div>
+        <label style="display:flex;gap:8px;align-items:flex-start;font-weight:normal;font-size:.9em;margin-top:18px;color:#333;">
+          <input type="checkbox" id="cad-aceite" style="margin-top:3px;">
+          <span>Declaro que as informações são verdadeiras e autorizo o uso desses dados pela coordenação de estágios exclusivamente para organizar e acompanhar os estágios curriculares (LGPD).</span>
+        </label>` : ""}
+    </div>`;
+}
+
+// Tabela "Disciplinas que pode receber" do primeiro cadastro. Re-renderiza quando
+// as disciplinas mudam, preservando o que já foi marcado.
+function renderVagasCadastro(){
+  const el = document.getElementById("cad-vagas");
+  if (!el) return;
+  const estado = {};
+  el.querySelectorAll(".chk-disc-vaga").forEach(chk => {
+    const id = chk.value;
+    estado[id] = {
+      marcado: chk.checked,
+      qtd: el.querySelector(`.input-qtd-vaga[data-disc="${id}"]`).value,
+      turno: el.querySelector(`.select-turno-vaga[data-disc="${id}"]`).value
+    };
+  });
+  const discs = disciplinasAtivas();
+  if (!discs.length){
+    el.innerHTML = `<p class="muted">Nenhuma disciplina aberta no momento — você poderá cadastrar vagas assim que forem publicadas.</p>`;
+    return;
+  }
+  const opcoesTurno = atual => TURNOS.concat(["Flexível"]).map(t => `<option ${t === atual ? "selected" : ""}>${t}</option>`).join("");
+  el.innerHTML = `<div class="table-container"><table>
+    <thead><tr><th>Disciplina</th><th>Nº de estagiários</th><th>Turno</th></tr></thead>
+    <tbody>${discs.map(d => {
+      const e = estado[d.id] || { marcado: false, qtd: 1, turno: "" };
+      return `<tr>
+        <td><label style="display:flex;gap:8px;align-items:center;font-weight:normal;font-size:.92em;color:#333;margin:0;">
+          <input type="checkbox" class="chk-disc-vaga" value="${d.id}" ${e.marcado ? "checked" : ""}> ${escapeHtml(d.nome)}</label>
+          ${d.segmento ? `<span class="muted" style="margin-left:24px;">${escapeHtml(d.segmento)}</span>` : ""}</td>
+        <td style="width:110px;"><input type="number" min="1" max="200" value="${escapeHtml(e.qtd)}" class="input-qtd-vaga" data-disc="${d.id}"></td>
+        <td style="width:150px;"><select class="select-turno-vaga" data-disc="${d.id}">${opcoesTurno(e.turno)}</select></td>
+      </tr>`;
+    }).join("")}</tbody></table></div>`;
+}
+
+function montarFormCadastro(raiz){
+  const aplicarTipo = tipo => {
+    document.getElementById("cad-tipo").value = tipo;
+    raiz.querySelectorAll(".tipo-opcao").forEach(b => b.classList.toggle("selecionado", b.dataset.tipo === tipo));
+    document.getElementById("cad-campos").classList.toggle("hidden", !tipo);
+    if (!tipo) return;
+    const info = TIPOS_PARCEIRO[tipo];
+    document.getElementById("lbl-cad-nome").textContent = info.nomeLabel;
+    document.getElementById("cad-nome").placeholder = info.nomePlaceholder;
+    ["secretaria", "escola", "professora"].forEach(t => {
+      raiz.querySelectorAll(".so-" + t).forEach(el => {
+        const visivel = Array.from(el.classList).some(c => c === "so-" + tipo);
+        el.classList.toggle("hidden", !visivel);
+      });
+    });
+    const nome = document.getElementById("cad-nome");
+    if (tipo === "professora" && !nome.value && currentUser.name !== currentUser.email) nome.value = currentUser.name;
+  };
+  raiz.querySelectorAll(".tipo-opcao").forEach(b => b.addEventListener("click", () => aplicarTipo(b.dataset.tipo)));
+  aplicarTipo(document.getElementById("cad-tipo").value);
+}
+
+function lerFormCadastro(){
+  const tipo = val("cad-tipo");
+  if (!TIPOS_PARCEIRO[tipo]) throw new Error("Escolha se você é Secretaria, Escola ou Professora");
+  const dados = {
+    tipo,
+    nome: val("cad-nome"),
+    responsavelNome: tipo === "professora" ? val("cad-nome") : val("cad-responsavel"),
+    cargo: tipo === "professora" ? "Professora" : val("cad-cargo"),
+    escolaAtuacao: tipo === "professora" ? val("cad-escola-atuacao") : "",
+    turmaAtuacao: tipo === "professora" ? val("cad-turma-atuacao") : "",
+    codigoInep: tipo === "escola" ? val("cad-inep") : "",
+    numeroEscolas: tipo === "secretaria" ? val("cad-num-escolas") : "",
+    rede: val("cad-rede"),
+    emailContato: val("cad-email-contato").toLowerCase(),
+    telefone: val("cad-telefone"),
+    endereco: val("cad-endereco"),
+    bairro: val("cad-bairro"),
+    cidade: val("cad-cidade"),
+    uf: val("cad-uf"),
+    cep: val("cad-cep"),
+    segmentos: checados("cad-segmentos"),
+    turnos: checados("cad-turnos"),
+    observacoes: val("cad-observacoes")
+  };
+  if (!dados.nome) throw new Error("Preencha o nome");
+  if (tipo !== "professora" && !dados.responsavelNome) throw new Error("Informe o nome do(a) responsável");
+  if (tipo === "professora" && !dados.escolaAtuacao) throw new Error("Informe a escola onde você leciona");
+  if (!dados.rede) throw new Error("Selecione a rede");
+  if (!emailValido(dados.emailContato)) throw new Error("Informe um e-mail de contato válido");
+  if (!dados.telefone) throw new Error("Informe um telefone de contato");
+  if (!dados.cidade) throw new Error("Informe a cidade");
+  if (dados.segmentos.length === 0) throw new Error("Marque ao menos um segmento atendido");
+  return dados;
+}
+
+function unidadePadrao(p){
+  if (!p) return "";
+  if (p.tipo === "escola") return p.nome;
+  if (p.tipo === "professora") return p.escolaAtuacao + (p.turmaAtuacao ? " — " + p.turmaAtuacao : "");
+  return "";
+}
+
+function dadosBaseOferta(p){
+  return { parceiroUid: currentUser.uid, parceiroNome: p.nome, parceiroTipo: p.tipo, cidade: p.cidade || "" };
+}
+
+function renderCadastroInicial(){
+  document.getElementById("conteudo").innerHTML = `
+    <div class="card">
+      <h2>Bem-vindo(a)! Complete seu cadastro</h2>
+      <p class="muted">Entrou como <b>${escapeHtml(currentUser.email)}</b>. Leva uns 3 minutos.</p>
+      <div id="form-cadastro">${formCadastroHtml(null, true)}</div>
+      <div style="margin-top:20px;"><button class="btn sucesso" id="btn-enviar-cadastro">Enviar cadastro</button></div>
+    </div>`;
+  montarFormCadastro(document.getElementById("form-cadastro"));
+  renderVagasCadastro();
+  refreshAtual = renderVagasCadastro;
+
+  document.getElementById("btn-enviar-cadastro").addEventListener("click", async () => {
+    let dados;
+    try { dados = lerFormCadastro(); } catch (e){ return toast(e.message, "erro"); }
+    if (!document.getElementById("cad-aceite").checked) return toast("Confirme a declaração e autorização de uso dos dados", "erro");
+    const vagas = Array.from(document.querySelectorAll(".chk-disc-vaga:checked")).map(chk => {
+      const id = chk.value;
+      const disc = store.disciplinas.find(d => d.id === id);
+      return {
+        disciplinaId: id, disciplinaNome: disc ? disc.nome : "",
+        vagas: Math.max(parseInt(document.querySelector(`.input-qtd-vaga[data-disc="${id}"]`).value, 10) || 1, 1),
+        turno: document.querySelector(`.select-turno-vaga[data-disc="${id}"]`).value
+      };
+    });
+    showLoading();
+    try {
+      await db.collection("parceiros").doc(currentUser.uid).set({
+        ...dados, email: currentUser.email, status: "pendente", aceiteLgpd: true,
+        criadoEm: serverTs(), atualizadoEm: serverTs()
+      });
+      const base = dadosBaseOferta(dados);
+      for (const v of vagas){
+        await db.collection("ofertasVagas").add({
+          ...base, ...v, unidade: unidadePadrao(dados), segmento: "", periodoInicio: "", periodoFim: "",
+          supervisorNome: dados.tipo === "professora" ? dados.nome : "", observacoes: "",
+          status: "aberta", criadoEm: serverTs()
+        });
+      }
+      toast("Cadastro enviado! A coordenação vai analisar.", "sucesso");
+    } catch (e){
+      console.error(e);
+      toast("Erro ao salvar o cadastro: " + e.message, "erro");
+    } finally { hideLoading(); }
+  });
+}
+
+function renderParceiroCadastro(){
+  const p = store.parceiro;
+  document.getElementById("conteudo").innerHTML = `
+    <div class="card">
+      <div class="secao-titulo"><h2>Meu cadastro</h2>${badge(STATUS_PARCEIRO_INFO[p.status])}</div>
+      <p class="muted">Login: ${escapeHtml(currentUser.email)} · cadastrado em ${fmtData(p.criadoEm)}</p>
+      <div id="form-cadastro">${formCadastroHtml(p, false)}</div>
+      <div style="margin-top:20px;"><button class="btn" id="btn-salvar-cadastro">Salvar alterações</button></div>
+    </div>`;
+  montarFormCadastro(document.getElementById("form-cadastro"));
+  document.getElementById("btn-salvar-cadastro").addEventListener("click", async () => {
+    let dados;
+    try { dados = lerFormCadastro(); } catch (e){ return toast(e.message, "erro"); }
+    showLoading();
+    try {
+      await db.collection("parceiros").doc(currentUser.uid).update({ ...dados, atualizadoEm: serverTs() });
+      // mantém nome/tipo/cidade das vagas em dia
+      const batch = db.batch();
+      store.ofertas.forEach(o => batch.update(db.collection("ofertasVagas").doc(o.id), { parceiroNome: dados.nome, parceiroTipo: dados.tipo, cidade: dados.cidade }));
+      await batch.commit();
+      toast("Cadastro atualizado", "sucesso");
+    } catch (e){ toast(e.message, "erro"); }
+    finally { hideLoading(); }
+  });
+}
+
+/* ---------- Vagas do parceiro ---------- */
+
+function formOfertaHtml(o){
+  o = o || {};
+  const discs = disciplinasAtivas();
+  // mantém a disciplina atual mesmo se ela foi desativada
+  if (o.disciplinaId && !discs.some(d => d.id === o.disciplinaId)) discs.push({ id: o.disciplinaId, nome: o.disciplinaNome + " (encerrada)" });
+  const p = store.parceiro || {};
+  return `
+    <div class="linha-form">
+      <div style="flex:2;"><label>Disciplina de estágio</label>
+        <select id="of-disciplina"><option value="">Selecione</option>${discs.map(d => `<option value="${d.id}" ${d.id === o.disciplinaId ? "selected" : ""}>${escapeHtml(d.nome)}</option>`).join("")}</select></div>
+      <div><label>Nº de estagiários</label><input type="number" min="1" max="200" id="of-vagas" value="${escapeHtml(o.vagas || 1)}"></div>
+    </div>
+    <div class="linha-form">
+      <div style="flex:2;"><label>${p.tipo === "secretaria" ? "Unidade escolar que vai receber" : "Escola / turma"}</label>
+        <input type="text" id="of-unidade" placeholder="${p.tipo === "secretaria" ? "Ex: EMEI Monteiro Lobato (ou deixe em branco para a Secretaria indicar depois)" : ""}" value="${escapeHtml(o.unidade !== undefined ? o.unidade : unidadePadrao(p))}"></div>
+      <div><label>Turno</label><select id="of-turno">${TURNOS.concat(["Flexível"]).map(t => `<option ${t === o.turno ? "selected" : ""}>${t}</option>`).join("")}</select></div>
+    </div>
+    <div class="linha-form">
+      <div><label>Segmento / ano</label><select id="of-segmento"><option value="">Qualquer</option>${SEGMENTOS.map(s => `<option ${s === o.segmento ? "selected" : ""}>${escapeHtml(s)}</option>`).join("")}</select></div>
+      <div><label>Disponível a partir de</label><input type="date" id="of-inicio" value="${escapeHtml(o.periodoInicio)}"></div>
+      <div><label>Até</label><input type="date" id="of-fim" value="${escapeHtml(o.periodoFim)}"></div>
+    </div>
+    <div class="linha-form">
+      <div><label>Professor(a) que vai acompanhar o estagiário</label><input type="text" id="of-supervisor" value="${escapeHtml(o.supervisorNome !== undefined ? o.supervisorNome : (p.tipo === "professora" ? p.nome : ""))}"></div>
+    </div>
+    <div><label>Observações</label><textarea id="of-observacoes" rows="2" placeholder="Ex: dias da semana, horário de entrada, exigências">${escapeHtml(o.observacoes)}</textarea></div>`;
+}
+
+function lerFormOferta(){
+  const disciplinaId = val("of-disciplina");
+  if (!disciplinaId) throw new Error("Selecione a disciplina");
+  const disc = store.disciplinas.find(d => d.id === disciplinaId);
+  const vagas = parseInt(val("of-vagas"), 10);
+  if (!vagas || vagas < 1) throw new Error("Informe o número de estagiários");
+  const inicio = val("of-inicio"), fim = val("of-fim");
+  if (inicio && fim && fim < inicio) throw new Error("A data final é anterior à inicial");
+  return {
+    disciplinaId, disciplinaNome: disc ? disc.nome : "",
+    vagas, unidade: val("of-unidade"), turno: val("of-turno"), segmento: val("of-segmento"),
+    periodoInicio: inicio, periodoFim: fim, supervisorNome: val("of-supervisor"), observacoes: val("of-observacoes")
+  };
+}
+
+function abrirModalOferta(oferta){
+  const edicao = !!oferta;
+  if (!edicao && disciplinasAtivas().length === 0) return toast("Nenhuma disciplina aberta para estágio no momento.", "erro");
+  abrirModal(`
+    <h2>${edicao ? "Editar vaga" : "Oferecer nova vaga"}</h2>
+    ${formOfertaHtml(oferta)}
+    <div class="btn-group" style="margin-top:18px;justify-content:flex-end;">
+      <button class="btn secundario" data-fechar-modal>Cancelar</button>
+      <button class="btn sucesso" id="btn-salvar-oferta">${edicao ? "Salvar" : "Cadastrar vaga"}</button>
+    </div>`, () => {
+    document.getElementById("btn-salvar-oferta").addEventListener("click", async () => {
+      let dados;
+      try { dados = lerFormOferta(); } catch (e){ return toast(e.message, "erro"); }
+      if (edicao){
+        const alocados = alocacoesDaOferta(oferta.id).length;
+        if (dados.vagas < alocados) return toast(`Já há ${alocados} estagiário(s) alocado(s) nesta vaga. O número não pode ser menor.`, "erro");
+      }
+      showLoading();
+      try {
+        if (edicao){
+          await db.collection("ofertasVagas").doc(oferta.id).update(dados);
+        } else {
+          await db.collection("ofertasVagas").add({ ...dadosBaseOferta(store.parceiro), ...dados, status: "aberta", criadoEm: serverTs() });
+        }
+        fecharModal();
+        toast(edicao ? "Vaga atualizada" : "Vaga cadastrada", "sucesso");
+      } catch (e){ toast(e.message, "erro"); }
+      finally { hideLoading(); }
+    });
+  });
+}
+
+function cartaoOfertaParceiro(o){
+  const aloc = alocacoesDaOferta(o.id).length;
+  const pct = o.vagas ? Math.min(aloc / o.vagas * 100, 100) : 0;
+  return `
+    <div class="item-card ${o.status === "encerrada" ? "encerrada" : ""}">
+      <div class="secao-titulo" style="margin-bottom:6px;"><h3 style="margin:0;">${escapeHtml(o.disciplinaNome)}</h3>${badge(STATUS_OFERTA_INFO[o.status] || STATUS_OFERTA_INFO.aberta)}</div>
+      ${o.unidade ? `<p>📍 ${escapeHtml(o.unidade)}</p>` : ""}
+      <p>🕒 ${escapeHtml(o.turno || "—")}${o.segmento ? " · " + escapeHtml(o.segmento) : ""}</p>
+      ${o.periodoInicio || o.periodoFim ? `<p>📅 ${fmtDataSimples(o.periodoInicio)} a ${fmtDataSimples(o.periodoFim)}</p>` : ""}
+      ${o.supervisorNome ? `<p>👩‍🏫 ${escapeHtml(o.supervisorNome)}</p>` : ""}
+      <p style="margin-top:10px;"><b>${aloc}</b> de <b>${escapeHtml(o.vagas)}</b> estagiário(s) encaminhado(s)</p>
+      <div class="barra-vagas"><div style="width:${pct}%;"></div></div>
+      <div class="btn-group" style="margin-top:12px;">
+        <button class="btn pequeno btn-editar-oferta" data-id="${o.id}">Editar</button>
+        <button class="btn secundario pequeno btn-status-oferta" data-id="${o.id}">${o.status === "encerrada" ? "Reabrir" : "Encerrar"}</button>
+        ${aloc === 0 ? `<button class="btn perigo pequeno btn-excluir-oferta" data-id="${o.id}">Excluir</button>` : ""}
+      </div>
+    </div>`;
+}
+
+function renderParceiroVagas(){
+  document.getElementById("conteudo").innerHTML = `
+    <div class="card">
+      <div class="secao-titulo">
+        <h2>Minhas vagas de estágio</h2>
+        <button class="btn sucesso" id="btn-nova-oferta">+ Oferecer vaga</button>
+      </div>
+      <p class="muted">Cada vaga corresponde a uma disciplina de estágio. "Encerre" quando não puder mais receber estudantes.</p>
+      <div class="grid-cards" id="grid-ofertas"></div>
+    </div>`;
+  document.getElementById("btn-nova-oferta").addEventListener("click", () => abrirModalOferta(null));
+
+  refreshAtual = () => {
+    const grid = document.getElementById("grid-ofertas");
+    if (!grid) return;
+    const ofertas = store.ofertas.slice().sort((a, b) => (a.status === b.status ? (a.disciplinaNome || "").localeCompare(b.disciplinaNome || "") : a.status === "aberta" ? -1 : 1));
+    grid.innerHTML = ofertas.map(cartaoOfertaParceiro).join("") || `<p class="muted">Você ainda não ofereceu nenhuma vaga. Clique em "+ Oferecer vaga".</p>`;
+    grid.querySelectorAll(".btn-editar-oferta").forEach(b => b.addEventListener("click", () => abrirModalOferta(store.ofertas.find(o => o.id === b.dataset.id))));
+    grid.querySelectorAll(".btn-status-oferta").forEach(b => b.addEventListener("click", async () => {
+      const o = store.ofertas.find(x => x.id === b.dataset.id);
+      try {
+        await db.collection("ofertasVagas").doc(o.id).update({ status: o.status === "encerrada" ? "aberta" : "encerrada" });
+      } catch (e){ toast(e.message, "erro"); }
+    }));
+    grid.querySelectorAll(".btn-excluir-oferta").forEach(b => b.addEventListener("click", async () => {
+      if (!confirm("Excluir esta vaga?")) return;
+      try { await db.collection("ofertasVagas").doc(b.dataset.id).delete(); toast("Vaga excluída", "sucesso"); }
+      catch (e){ toast(e.message, "erro"); }
+    }));
+  };
+  refreshAtual();
+}
+
+function renderParceiroEstagiarios(){
+  document.getElementById("conteudo").innerHTML = `
+    <div class="card">
+      <h2>Estagiários encaminhados</h2>
+      <p class="muted">Estudantes que a coordenação de estágios encaminhou para as suas vagas.</p>
+      <div class="table-container" id="tabela-estagiarios-parceiro"></div>
+    </div>`;
+  refreshAtual = () => {
+    const el = document.getElementById("tabela-estagiarios-parceiro");
+    if (!el) return;
+    const linhas = store.alocacoes.slice().sort((a, b) => (a.alunoNome || "").localeCompare(b.alunoNome || "")).map(a => {
+      const o = store.ofertas.find(x => x.id === a.ofertaId) || {};
+      return `<tr>
+        <td>${escapeHtml(a.alunoNome)}</td>
+        <td><a href="mailto:${escapeHtml(a.alunoEmail)}">${escapeHtml(a.alunoEmail)}</a></td>
+        <td>${escapeHtml(a.disciplinaNome)}</td>
+        <td>${escapeHtml(o.unidade || "—")}</td>
+        <td>${escapeHtml(o.turno || "—")}</td>
+        <td>${fmtData(a.criadoEm)}</td>
+      </tr>`;
+    }).join("");
+    el.innerHTML = `<table>
+      <thead><tr><th>Estudante</th><th>E-mail</th><th>Disciplina</th><th>Unidade</th><th>Turno</th><th>Encaminhado em</th></tr></thead>
+      <tbody>${linhas || `<tr><td colspan="6">Nenhum estagiário encaminhado ainda.</td></tr>`}</tbody></table>`;
+  };
+  refreshAtual();
+}
+
+/* ======================================================================
+   6. ADMIN (coordenação de estágios)
+   ====================================================================== */
+
+function iniciarAdmin(){
+  const ouvir = (ref, chave, mapear) => unsubsGlobais.push(ref.onSnapshot(snap => {
+    store[chave] = snap.docs.map(mapear || (d => ({ id: d.id, ...d.data() })));
+    disparaRefresh();
+  }, e => { console.error(e); toast(`Erro ao carregar ${chave}: ${e.message}`, "erro"); }));
+
+  ouvir(db.collection("disciplinasEstagio"), "disciplinas");
+  ouvir(db.collection("parceiros"), "parceiros", d => ({ uid: d.id, ...d.data() }));
+  ouvir(db.collection("ofertasVagas"), "ofertas");
+  ouvir(db.collection("alocacoesEstagio"), "alocacoes");
+  ouvir(db.collection("turmas"), "turmas");
+  ouvir(db.collection("matriculas").where("status", "==", "aprovado"), "matriculasAprovadas");
+
+  renderNav([
+    { id: "a-geral", label: "Visão geral" },
+    { id: "a-parceiros", label: "Parceiros" },
+    { id: "a-vagas", label: "Vagas e estagiários" },
+    { id: "a-disciplinas", label: "Disciplinas" },
+    { id: "a-config", label: "Configuração" }
+  ]);
+  abrirAba("a-geral");
+}
+
+function turmasAtivas(){ return store.turmas.filter(t => t.arquivada !== true); }
+
+// Alunos aprovados em turmas ativas vinculadas à disciplina (= quem precisa de campo de estágio)
+function alunosDaDisciplina(disc){
+  const ids = new Set((disc.turmaIds || []).filter(id => turmasAtivas().some(t => t.id === id)));
+  const vistos = new Map();
+  store.matriculasAprovadas.filter(m => ids.has(m.turmaId)).forEach(m => {
+    if (!vistos.has(m.alunoEmail)) vistos.set(m.alunoEmail, { nome: m.alunoNome, email: m.alunoEmail });
+  });
+  return Array.from(vistos.values()).sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
+}
+
+function parceiroDe(uid){ return store.parceiros.find(p => p.uid === uid); }
+
+/* ---------- Visão geral ---------- */
+function renderAdminGeral(){
+  document.getElementById("conteudo").innerHTML = `
+    <div class="grid-stats" id="stats-geral"></div>
+    <div class="card">
+      <h2>Oferta x procura por disciplina</h2>
+      <p class="muted">"Estudantes" = alunos aprovados nas turmas ativas vinculadas à disciplina (vincule em "Disciplinas"). Vagas consideram só ofertas abertas de parceiros aprovados.</p>
+      <div class="table-container" id="tabela-oferta-procura"></div>
+    </div>
+    <div class="card">
+      <div class="secao-titulo"><h2>Cadastros aguardando análise</h2></div>
+      <div class="table-container" id="tabela-pendentes-geral"></div>
+    </div>`;
+
+  refreshAtual = () => {
+    const stats = document.getElementById("stats-geral");
+    if (!stats) return;
+    const cont = t => store.parceiros.filter(p => p.tipo === t && p.status === "aprovado").length;
+    const pendentes = store.parceiros.filter(p => p.status === "pendente");
+    const ofertasValidas = store.ofertas.filter(o => o.status === "aberta" && (parceiroDe(o.parceiroUid) || {}).status === "aprovado");
+    const totalVagas = ofertasValidas.reduce((s, o) => s + (Number(o.vagas) || 0), 0);
+    stats.innerHTML = `
+      <div class="stat-box"><div class="num">${cont("secretaria")}</div><div class="lbl">Secretarias aprovadas</div></div>
+      <div class="stat-box"><div class="num">${cont("escola")}</div><div class="lbl">Escolas aprovadas</div></div>
+      <div class="stat-box"><div class="num">${cont("professora")}</div><div class="lbl">Professoras aprovadas</div></div>
+      <div class="stat-box"><div class="num" style="color:var(--amarelo);">${pendentes.length}</div><div class="lbl">Cadastros em análise</div></div>
+      <div class="stat-box"><div class="num">${totalVagas}</div><div class="lbl">Vagas abertas</div></div>
+      <div class="stat-box"><div class="num" style="color:var(--verde);">${store.alocacoes.length}</div><div class="lbl">Estagiários encaminhados</div></div>`;
+
+    const linhas = disciplinasAtivas().map(d => {
+      const ofs = ofertasValidas.filter(o => o.disciplinaId === d.id);
+      const vagas = ofs.reduce((s, o) => s + (Number(o.vagas) || 0), 0);
+      const alocados = store.alocacoes.filter(a => a.disciplinaId === d.id).length;
+      const estudantes = alunosDaDisciplina(d).length;
+      const semCampo = Math.max(estudantes - alocados, 0);
+      const saldo = vagas - alocados - semCampo;
+      return `<tr>
+        <td>${escapeHtml(d.nome)}</td>
+        <td>${ofs.length}</td>
+        <td>${vagas}</td>
+        <td>${alocados}</td>
+        <td>${(d.turmaIds || []).length ? estudantes : `<span class="muted">sem turma vinculada</span>`}</td>
+        <td>${(d.turmaIds || []).length ? (semCampo ? `<b style="color:var(--vermelho);">${semCampo}</b>` : `<span style="color:var(--verde);">0</span>`) : "—"}</td>
+        <td>${(d.turmaIds || []).length ? `<b style="color:${saldo >= 0 ? "var(--verde)" : "var(--vermelho)"};">${saldo >= 0 ? "+" : ""}${saldo}</b>` : "—"}</td>
+      </tr>`;
+    }).join("");
+    document.getElementById("tabela-oferta-procura").innerHTML = `<table>
+      <thead><tr><th>Disciplina</th><th>Ofertas</th><th>Vagas</th><th>Encaminhados</th><th>Estudantes</th><th>Sem campo</th><th>Saldo de vagas</th></tr></thead>
+      <tbody>${linhas || `<tr><td colspan="7">Nenhuma disciplina ativa. Cadastre em "Disciplinas".</td></tr>`}</tbody></table>`;
+
+    document.getElementById("tabela-pendentes-geral").innerHTML = tabelaParceirosHtml(pendentes) ;
+    ligarLinhasParceiros(document.getElementById("tabela-pendentes-geral"));
+  };
+  refreshAtual();
+}
+
+/* ---------- Parceiros ---------- */
+function tabelaParceirosHtml(lista){
+  const linhas = lista.slice().sort(porNome).map(p => {
+    const vagas = store.ofertas.filter(o => o.parceiroUid === p.uid && o.status === "aberta").reduce((s, o) => s + (Number(o.vagas) || 0), 0);
+    return `<tr class="clicavel linha-parceiro" data-uid="${p.uid}">
+      <td>${escapeHtml(p.nome)}${p.tipo === "professora" ? `<br><span class="muted">${escapeHtml(p.escolaAtuacao)}</span>` : ""}</td>
+      <td>${TIPOS_PARCEIRO[p.tipo] ? TIPOS_PARCEIRO[p.tipo].icone + " " + escapeHtml(TIPOS_PARCEIRO[p.tipo].label) : escapeHtml(p.tipo)}</td>
+      <td>${escapeHtml(p.cidade)}${p.uf ? "/" + escapeHtml(p.uf) : ""}</td>
+      <td>${escapeHtml(p.rede)}</td>
+      <td>${vagas}</td>
+      <td>${badge(STATUS_PARCEIRO_INFO[p.status] || STATUS_PARCEIRO_INFO.pendente)}</td>
+      <td>${fmtData(p.criadoEm)}</td>
+    </tr>`;
+  }).join("");
+  return `<table>
+    <thead><tr><th>Nome</th><th>Tipo</th><th>Cidade</th><th>Rede</th><th>Vagas abertas</th><th>Status</th><th>Cadastro</th></tr></thead>
+    <tbody>${linhas || `<tr><td colspan="7">Nenhum cadastro.</td></tr>`}</tbody></table>`;
+}
+function ligarLinhasParceiros(container){
+  container.querySelectorAll(".linha-parceiro").forEach(r => r.addEventListener("click", () => {
+    if (currentTab !== "a-parceiros"){
+      currentTab = "a-parceiros";
+      document.querySelectorAll("#nav-abas button").forEach(b => b.classList.toggle("ativa", b.dataset.tab === "a-parceiros"));
+    }
+    selectedParceiroUid = r.dataset.uid;
+    renderAdminParceiroDetalhe();
+  }));
+}
+
+function renderAdminParceiros(){
+  document.getElementById("conteudo").innerHTML = `
+    <div class="card">
+      <div class="secao-titulo">
+        <h2>Parceiros cadastrados</h2>
+        <button class="btn secundario pequeno" id="btn-exportar-parceiros">⬇ Exportar Excel</button>
+      </div>
+      <div class="linha-form">
+        <div><label>Buscar</label><input type="text" id="filtro-busca-parceiro" placeholder="Nome, cidade, e-mail..."></div>
+        <div><label>Tipo</label><select id="filtro-tipo-parceiro"><option value="">Todos</option>${Object.entries(TIPOS_PARCEIRO).map(([id, t]) => `<option value="${id}">${t.label}</option>`).join("")}</select></div>
+        <div><label>Status</label><select id="filtro-status-parceiro"><option value="">Todos</option>${Object.entries(STATUS_PARCEIRO_INFO).map(([id, s]) => `<option value="${id}">${s.label}</option>`).join("")}</select></div>
+      </div>
+      <div class="table-container" id="tabela-parceiros"></div>
+    </div>`;
+  ["filtro-busca-parceiro", "filtro-tipo-parceiro", "filtro-status-parceiro"].forEach(id =>
+    document.getElementById(id).addEventListener("input", () => refreshAtual && refreshAtual()));
+  document.getElementById("btn-exportar-parceiros").addEventListener("click", exportarParceiros);
+
+  refreshAtual = () => {
+    const el = document.getElementById("tabela-parceiros");
+    if (!el) return;
+    const busca = normalizar(val("filtro-busca-parceiro"));
+    const tipo = val("filtro-tipo-parceiro"), status = val("filtro-status-parceiro");
+    const lista = store.parceiros.filter(p =>
+      (!tipo || p.tipo === tipo) && (!status || p.status === status) &&
+      (!busca || normalizar([p.nome, p.cidade, p.email, p.emailContato, p.escolaAtuacao, p.responsavelNome].join(" ")).includes(busca)));
+    el.innerHTML = tabelaParceirosHtml(lista) + `<p class="muted" style="margin-top:8px;">${lista.length} cadastro(s). Clique para ver detalhes e aprovar.</p>`;
+    ligarLinhasParceiros(el);
+  };
+  refreshAtual();
+}
+
+function renderAdminParceiroDetalhe(){
+  document.getElementById("conteudo").innerHTML = `
+    <button class="voltar-link" id="btn-voltar-parceiros">← Voltar para parceiros</button>
+    <div class="card" id="detalhe-parceiro"></div>
+    <div class="card"><h2>Vagas oferecidas</h2><div class="grid-cards" id="ofertas-do-parceiro"></div></div>`;
+  document.getElementById("btn-voltar-parceiros").addEventListener("click", () => abrirAba("a-parceiros"));
+
+  refreshAtual = () => {
+    const el = document.getElementById("detalhe-parceiro");
+    if (!el) return;
+    const p = parceiroDe(selectedParceiroUid);
+    if (!p){ el.innerHTML = "<p>Cadastro não encontrado (pode ter sido excluído).</p>"; return; }
+    const tipo = TIPOS_PARCEIRO[p.tipo] || { label: p.tipo, icone: "" };
+    const campo = (rotulo, valor) => valor ? `<div><span>${rotulo}</span>${escapeHtml(valor)}</div>` : "";
+    el.innerHTML = `
+      <div class="secao-titulo"><h2>${tipo.icone} ${escapeHtml(p.nome)}</h2>${badge(STATUS_PARCEIRO_INFO[p.status] || STATUS_PARCEIRO_INFO.pendente)}</div>
+      <div class="dados-lista">
+        ${campo("Tipo", tipo.label)}
+        ${campo("Responsável", p.responsavelNome)}
+        ${campo("Cargo", p.cargo)}
+        ${campo("Escola onde leciona", p.escolaAtuacao)}
+        ${campo("Turma", p.turmaAtuacao)}
+        ${campo("Código INEP", p.codigoInep)}
+        ${campo("Nº de escolas", p.numeroEscolas)}
+        ${campo("Rede", p.rede)}
+        ${campo("E-mail de login", p.email)}
+        ${campo("E-mail de contato", p.emailContato)}
+        ${campo("Telefone", p.telefone)}
+        ${campo("Endereço", [p.endereco, p.bairro].filter(Boolean).join(" — "))}
+        ${campo("Cidade", [p.cidade, p.uf].filter(Boolean).join("/"))}
+        ${campo("CEP", p.cep)}
+        ${campo("Segmentos", (p.segmentos || []).join(", "))}
+        ${campo("Turnos", (p.turnos || []).join(", "))}
+        ${campo("Cadastrado em", fmtData(p.criadoEm))}
+      </div>
+      ${p.observacoes ? `<div class="info-box" style="margin-top:14px;"><b>Observações do parceiro:</b> ${escapeHtml(p.observacoes)}</div>` : ""}
+      ${p.observacaoAdmin ? `<div class="aviso" style="margin-top:14px;"><b>Nota da coordenação:</b> ${escapeHtml(p.observacaoAdmin)}</div>` : ""}
+      <div class="btn-group" style="margin-top:16px;">
+        ${p.status !== "aprovado" ? `<button class="btn sucesso" id="btn-aprovar-parceiro">Aprovar</button>` : ""}
+        ${p.status !== "recusado" ? `<button class="btn perigo" id="btn-recusar-parceiro">Recusar</button>` : ""}
+        ${p.status !== "pendente" ? `<button class="btn secundario" id="btn-voltar-analise">Voltar para análise</button>` : ""}
+        <button class="btn secundario" id="btn-nota-parceiro">Editar nota</button>
+        <button class="btn perigo" id="btn-excluir-parceiro" style="margin-left:auto;">Excluir cadastro</button>
+      </div>`;
+
+    const mudarStatus = async (status, observacaoAdmin) => {
+      showLoading();
+      try {
+        const upd = { status, analisadoPor: currentUser.name, analisadoEm: serverTs() };
+        if (observacaoAdmin !== undefined) upd.observacaoAdmin = observacaoAdmin;
+        await db.collection("parceiros").doc(p.uid).update(upd);
+        toast("Status atualizado", "sucesso");
+      } catch (e){ toast(e.message, "erro"); }
+      finally { hideLoading(); }
+    };
+    const on = (id, fn) => { const b = document.getElementById(id); if (b) b.addEventListener("click", fn); };
+    on("btn-aprovar-parceiro", () => mudarStatus("aprovado", ""));
+    on("btn-recusar-parceiro", () => {
+      const motivo = prompt("Motivo da recusa (o parceiro verá esta mensagem):");
+      if (motivo === null) return;
+      mudarStatus("recusado", motivo);
+    });
+    on("btn-voltar-analise", () => mudarStatus("pendente"));
+    on("btn-nota-parceiro", async () => {
+      const nota = prompt("Nota da coordenação (visível ao parceiro se o cadastro for recusado):", p.observacaoAdmin || "");
+      if (nota === null) return;
+      await db.collection("parceiros").doc(p.uid).update({ observacaoAdmin: nota });
+    });
+    on("btn-excluir-parceiro", async () => {
+      const ofs = store.ofertas.filter(o => o.parceiroUid === p.uid);
+      const alocs = store.alocacoes.filter(a => a.parceiroUid === p.uid);
+      if (!confirm(`Excluir o cadastro de "${p.nome}"?\n\nTambém serão apagadas ${ofs.length} vaga(s) e ${alocs.length} encaminhamento(s) de estagiários. A conta de login não é apagada: se a pessoa entrar de novo, verá o formulário de cadastro.`)) return;
+      showLoading();
+      try {
+        const batch = db.batch();
+        alocs.forEach(a => batch.delete(db.collection("alocacoesEstagio").doc(a.id)));
+        ofs.forEach(o => batch.delete(db.collection("ofertasVagas").doc(o.id)));
+        batch.delete(db.collection("parceiros").doc(p.uid));
+        await batch.commit();
+        toast("Cadastro excluído", "sucesso");
+        abrirAba("a-parceiros");
+      } catch (e){ toast(e.message, "erro"); }
+      finally { hideLoading(); }
+    });
+
+    const ofs = store.ofertas.filter(o => o.parceiroUid === p.uid);
+    const grid = document.getElementById("ofertas-do-parceiro");
+    grid.innerHTML = ofs.map(o => cartaoOfertaAdmin(o, false)).join("") || `<p class="muted">Nenhuma vaga cadastrada.</p>`;
+    ligarCartoesOfertaAdmin(grid);
+  };
+  refreshAtual();
+}
+
+/* ---------- Vagas e estagiários ---------- */
+function cartaoOfertaAdmin(o, mostrarParceiro){
+  const p = parceiroDe(o.parceiroUid) || {};
+  const alocs = alocacoesDaOferta(o.id);
+  const restantes = vagasRestantes(o);
+  const pct = o.vagas ? Math.min(alocs.length / o.vagas * 100, 100) : 0;
+  const podeAlocar = p.status === "aprovado" && o.status === "aberta" && restantes > 0;
+  return `
+    <div class="item-card ${o.status === "encerrada" ? "encerrada" : ""}">
+      <div class="secao-titulo" style="margin-bottom:6px;"><h3 style="margin:0;">${escapeHtml(o.disciplinaNome)}</h3>${badge(STATUS_OFERTA_INFO[o.status] || STATUS_OFERTA_INFO.aberta)}</div>
+      ${mostrarParceiro ? `<p><b>${TIPOS_PARCEIRO[p.tipo] ? TIPOS_PARCEIRO[p.tipo].icone : ""} ${escapeHtml(p.nome || o.parceiroNome)}</b> ${p.status && p.status !== "aprovado" ? badge(STATUS_PARCEIRO_INFO[p.status]) : ""}</p>` : ""}
+      ${o.unidade ? `<p>📍 ${escapeHtml(o.unidade)}</p>` : ""}
+      <p>🏙️ ${escapeHtml(p.cidade || o.cidade || "—")} · 🕒 ${escapeHtml(o.turno || "—")}</p>
+      ${o.segmento ? `<p>🎯 ${escapeHtml(o.segmento)}</p>` : ""}
+      ${o.periodoInicio || o.periodoFim ? `<p>📅 ${fmtDataSimples(o.periodoInicio)} a ${fmtDataSimples(o.periodoFim)}</p>` : ""}
+      ${o.supervisorNome ? `<p>👩‍🏫 ${escapeHtml(o.supervisorNome)}</p>` : ""}
+      ${p.telefone ? `<p>📞 ${escapeHtml(p.telefone)} · <a href="mailto:${escapeHtml(p.emailContato || p.email)}">${escapeHtml(p.emailContato || p.email)}</a></p>` : ""}
+      ${o.observacoes ? `<p class="muted">💬 ${escapeHtml(o.observacoes)}</p>` : ""}
+      <p style="margin-top:10px;"><b>${alocs.length}</b> de <b>${escapeHtml(o.vagas)}</b> vaga(s) preenchida(s)</p>
+      <div class="barra-vagas"><div style="width:${pct}%;"></div></div>
+      ${alocs.length ? `<ul style="padding-left:18px;margin:10px 0 0;font-size:.88em;">${alocs.map(a => `
+        <li>${escapeHtml(a.alunoNome)} <span class="muted">${escapeHtml(a.alunoEmail)}</span>
+          <button class="voltar-link btn-remover-alocacao" data-id="${a.id}" style="margin:0 0 0 6px;color:var(--vermelho);font-size:.85em;">remover</button></li>`).join("")}</ul>` : ""}
+      <div class="btn-group" style="margin-top:12px;">
+        <button class="btn sucesso pequeno btn-alocar" data-id="${o.id}" ${podeAlocar ? "" : "disabled"} title="${podeAlocar ? "" : (p.status !== "aprovado" ? "Aprove o parceiro primeiro" : o.status !== "aberta" ? "Vaga encerrada" : "Sem vagas restantes")}">+ Encaminhar estagiário</button>
+      </div>
+    </div>`;
+}
+
+function ligarCartoesOfertaAdmin(container){
+  container.querySelectorAll(".btn-alocar").forEach(b => b.addEventListener("click", () => abrirModalAlocacao(store.ofertas.find(o => o.id === b.dataset.id))));
+  container.querySelectorAll(".btn-remover-alocacao").forEach(b => b.addEventListener("click", async () => {
+    if (!confirm("Remover este estagiário da vaga?")) return;
+    try { await db.collection("alocacoesEstagio").doc(b.dataset.id).delete(); toast("Encaminhamento removido", "sucesso"); }
+    catch (e){ toast(e.message, "erro"); }
+  }));
+}
+
+function abrirModalAlocacao(oferta){
+  const disc = store.disciplinas.find(d => d.id === oferta.disciplinaId) || { turmaIds: [] };
+  const jaAlocados = new Set(store.alocacoes.filter(a => a.disciplinaId === oferta.disciplinaId).map(a => a.alunoEmail));
+  const sugestoes = alunosDaDisciplina(disc).filter(a => !jaAlocados.has(a.email));
+  abrirModal(`
+    <h2>Encaminhar estagiário</h2>
+    <p class="muted">${escapeHtml(oferta.disciplinaNome)} → <b>${escapeHtml(oferta.parceiroNome)}</b>${oferta.unidade ? " (" + escapeHtml(oferta.unidade) + ")" : ""} · ${vagasRestantes(oferta)} vaga(s) restante(s)</p>
+    ${sugestoes.length ? `
+      <label>Estudantes da disciplina ainda sem campo</label>
+      <select id="sel-aluno-sugerido" style="margin-bottom:14px;">
+        <option value="">— escolher da lista —</option>
+        ${sugestoes.map(a => `<option value="${escapeHtml(a.email)}" data-nome="${escapeHtml(a.nome)}">${escapeHtml(a.nome)} — ${escapeHtml(a.email)}</option>`).join("")}
+      </select>` : `<div class="info-box">${(disc.turmaIds || []).length ? "Todos os estudantes das turmas vinculadas já têm campo nesta disciplina." : "Vincule turmas a esta disciplina (aba Disciplinas) para ver a lista de estudantes aqui."} Você pode digitar os dados manualmente.</div>`}
+    <div class="linha-form">
+      <div><label>Nome do estudante</label><input type="text" id="aloc-nome"></div>
+      <div><label>E-mail do estudante</label><input type="email" id="aloc-email"></div>
+    </div>
+    <div class="btn-group" style="justify-content:flex-end;">
+      <button class="btn secundario" data-fechar-modal>Cancelar</button>
+      <button class="btn sucesso" id="btn-confirmar-alocacao">Encaminhar</button>
+    </div>`, () => {
+    const sel = document.getElementById("sel-aluno-sugerido");
+    if (sel) sel.addEventListener("change", () => {
+      const opt = sel.selectedOptions[0];
+      document.getElementById("aloc-nome").value = opt && opt.value ? opt.dataset.nome : "";
+      document.getElementById("aloc-email").value = opt ? opt.value : "";
+    });
+    document.getElementById("btn-confirmar-alocacao").addEventListener("click", async () => {
+      const nome = val("aloc-nome"), email = val("aloc-email").toLowerCase();
+      if (!nome || !emailValido(email)) return toast("Informe nome e e-mail válidos", "erro");
+      if (vagasRestantes(oferta) <= 0) return toast("Esta vaga já está completa", "erro");
+      const duplicado = store.alocacoes.find(a => a.disciplinaId === oferta.disciplinaId && a.alunoEmail === email);
+      if (duplicado && !confirm(`${nome} já foi encaminhado(a) para ${duplicado.parceiroNome} nesta disciplina. Encaminhar mesmo assim?`)) return;
+      showLoading();
+      try {
+        await db.collection("alocacoesEstagio").add({
+          ofertaId: oferta.id, parceiroUid: oferta.parceiroUid, parceiroNome: oferta.parceiroNome,
+          disciplinaId: oferta.disciplinaId, disciplinaNome: oferta.disciplinaNome,
+          alunoNome: nome, alunoEmail: email, criadoPor: currentUser.name, criadoEm: serverTs()
+        });
+        fecharModal();
+        toast("Estagiário encaminhado", "sucesso");
+      } catch (e){ toast(e.message, "erro"); }
+      finally { hideLoading(); }
+    });
+  });
+}
+
+function renderAdminVagas(){
+  const opcoesDisc = store.disciplinas.slice().sort(porNome).map(d => `<option value="${d.id}">${escapeHtml(d.nome)}</option>`).join("");
+  document.getElementById("conteudo").innerHTML = `
+    <div class="card">
+      <div class="secao-titulo">
+        <h2>Vagas e estagiários</h2>
+        <button class="btn secundario pequeno" id="btn-exportar-vagas">⬇ Exportar Excel</button>
+      </div>
+      <div class="linha-form">
+        <div><label>Disciplina</label><select id="filtro-disc-vaga"><option value="">Todas</option>${opcoesDisc}</select></div>
+        <div><label>Cidade</label><input type="text" id="filtro-cidade-vaga"></div>
+        <div><label>Tipo de parceiro</label><select id="filtro-tipo-vaga"><option value="">Todos</option>${Object.entries(TIPOS_PARCEIRO).map(([id, t]) => `<option value="${id}">${t.label}</option>`).join("")}</select></div>
+        <div><label>Mostrar</label><select id="filtro-situacao-vaga">
+          <option value="disponiveis">Com vagas disponíveis</option>
+          <option value="abertas">Todas as abertas</option>
+          <option value="todas">Todas (inclui encerradas)</option>
+        </select></div>
+      </div>
+      <div class="grid-cards" id="grid-ofertas-admin"></div>
+    </div>`;
+  ["filtro-disc-vaga", "filtro-cidade-vaga", "filtro-tipo-vaga", "filtro-situacao-vaga"].forEach(id =>
+    document.getElementById(id).addEventListener("input", () => refreshAtual && refreshAtual()));
+  document.getElementById("btn-exportar-vagas").addEventListener("click", exportarVagas);
+
+  refreshAtual = () => {
+    const grid = document.getElementById("grid-ofertas-admin");
+    if (!grid) return;
+    const disc = val("filtro-disc-vaga"), cidade = normalizar(val("filtro-cidade-vaga")), tipo = val("filtro-tipo-vaga"), sit = val("filtro-situacao-vaga");
+    const lista = store.ofertas.filter(o => {
+      const p = parceiroDe(o.parceiroUid) || {};
+      if (disc && o.disciplinaId !== disc) return false;
+      if (tipo && p.tipo !== tipo) return false;
+      if (cidade && !normalizar(p.cidade || o.cidade).includes(cidade)) return false;
+      if (sit !== "todas" && o.status !== "aberta") return false;
+      if (sit === "disponiveis" && (vagasRestantes(o) === 0 || p.status !== "aprovado")) return false;
+      return true;
+    }).sort((a, b) => (a.disciplinaNome || "").localeCompare(b.disciplinaNome || "") || (a.parceiroNome || "").localeCompare(b.parceiroNome || ""));
+    grid.innerHTML = lista.map(o => cartaoOfertaAdmin(o, true)).join("") || `<p class="muted">Nenhuma vaga com esses filtros.${sit === "disponiveis" ? " Vagas de parceiros ainda não aprovados não aparecem em \"Com vagas disponíveis\"." : ""}</p>`;
+    ligarCartoesOfertaAdmin(grid);
+  };
+  refreshAtual();
+}
+
+/* ---------- Disciplinas ---------- */
+
+// "MATUTINO - 1º Ano – 1º e 2º Semestres - Práticas Educacionais" -> "Práticas Educacionais"
+function disciplinaDaTurma(nomeTurma){
+  const partes = (nomeTurma || "").split(" - ").map(s => s.trim()).filter(Boolean);
+  return partes.length >= 3 ? partes[partes.length - 1] : (nomeTurma || "").trim();
+}
+
+function abrirModalDisciplina(disc){
+  disc = disc || {};
+  const vinculadas = new Set(disc.turmaIds || []);
+  const turmas = turmasAtivas().sort(porNome);
+  abrirModal(`
+    <h2>${disc.id ? "Editar disciplina" : "Nova disciplina de estágio"}</h2>
+    <div class="linha-form"><div><label>Nome</label><input type="text" id="disc-nome" value="${escapeHtml(disc.nome)}"></div></div>
+    <div class="linha-form">
+      <div><label>Segmento indicado</label><input type="text" id="disc-segmento" placeholder="Ex: Educação Infantil" value="${escapeHtml(disc.segmento)}"></div>
+      <div><label>Carga horária</label><input type="text" id="disc-carga" placeholder="Ex: 100h" value="${escapeHtml(disc.cargaHoraria)}"></div>
+    </div>
+    <div style="margin-bottom:14px;"><label>Descrição para os parceiros (aparece na página pública)</label><textarea id="disc-descricao" rows="3">${escapeHtml(disc.descricao)}</textarea></div>
+    <label>Turmas vinculadas (da Plataforma de Estágios) — usadas para saber quais estudantes precisam de campo</label>
+    <div style="max-height:220px;overflow-y:auto;border:1px solid #eee;border-radius:6px;padding:10px;" class="checks">
+      ${turmas.map(t => `<label style="width:100%;"><input type="checkbox" name="disc-turmas" value="${t.id}" ${vinculadas.has(t.id) ? "checked" : ""}> ${escapeHtml(t.nome)}</label>`).join("") || `<span class="muted">Nenhuma turma ativa.</span>`}
+    </div>
+    <div class="btn-group" style="margin-top:18px;justify-content:flex-end;">
+      <button class="btn secundario" data-fechar-modal>Cancelar</button>
+      <button class="btn sucesso" id="btn-salvar-disciplina">Salvar</button>
+    </div>`, () => {
+    document.getElementById("btn-salvar-disciplina").addEventListener("click", async () => {
+      const nome = val("disc-nome");
+      if (!nome) return toast("Informe o nome", "erro");
+      const dados = { nome, segmento: val("disc-segmento"), cargaHoraria: val("disc-carga"), descricao: val("disc-descricao"), turmaIds: checados("disc-turmas") };
+      showLoading();
+      try {
+        if (disc.id){
+          await db.collection("disciplinasEstagio").doc(disc.id).update(dados);
+          if (disc.nome !== nome){
+            // mantém o nome em dia nas vagas e encaminhamentos
+            const batch = db.batch();
+            store.ofertas.filter(o => o.disciplinaId === disc.id).forEach(o => batch.update(db.collection("ofertasVagas").doc(o.id), { disciplinaNome: nome }));
+            store.alocacoes.filter(a => a.disciplinaId === disc.id).forEach(a => batch.update(db.collection("alocacoesEstagio").doc(a.id), { disciplinaNome: nome }));
+            await batch.commit();
+          }
+        } else {
+          await db.collection("disciplinasEstagio").add({ ...dados, ativa: true, criadoEm: serverTs() });
+        }
+        fecharModal();
+        toast("Disciplina salva", "sucesso");
+      } catch (e){ toast(e.message, "erro"); }
+      finally { hideLoading(); }
+    });
+  });
+}
+
+async function importarDisciplinasDasTurmas(){
+  const grupos = new Map(); // nome normalizado -> { nome, turmaIds }
+  turmasAtivas().forEach(t => {
+    const nome = disciplinaDaTurma(t.nome);
+    const chave = normalizar(nome);
+    if (!grupos.has(chave)) grupos.set(chave, { nome, turmaIds: [] });
+    grupos.get(chave).turmaIds.push(t.id);
+  });
+  if (grupos.size === 0) return toast("Nenhuma turma ativa na Plataforma de Estágios", "erro");
+  const existentes = new Map(store.disciplinas.map(d => [normalizar(d.nome), d]));
+  const novas = [], atualizadas = [];
+  grupos.forEach((g, chave) => {
+    const ex = existentes.get(chave);
+    if (!ex) novas.push(g);
+    else {
+      const faltando = g.turmaIds.filter(id => !(ex.turmaIds || []).includes(id));
+      if (faltando.length) atualizadas.push({ disc: ex, turmaIds: (ex.turmaIds || []).concat(faltando) });
+    }
+  });
+  if (!novas.length && !atualizadas.length) return toast("Tudo já está sincronizado com as turmas ativas", "sucesso");
+  const msg = `Encontradas ${grupos.size} disciplina(s) nas turmas ativas.\n\n` +
+    (novas.length ? `Criar ${novas.length}:\n- ${novas.map(n => n.nome).join("\n- ")}\n\n` : "") +
+    (atualizadas.length ? `Vincular novas turmas a ${atualizadas.length} disciplina(s) já existente(s).\n\n` : "") + "Continuar?";
+  if (!confirm(msg)) return;
+  showLoading();
+  try {
+    const batch = db.batch();
+    novas.forEach(n => batch.set(db.collection("disciplinasEstagio").doc(), { nome: n.nome, turmaIds: n.turmaIds, segmento: "", cargaHoraria: "", descricao: "", ativa: true, criadoEm: serverTs() }));
+    atualizadas.forEach(a => batch.update(db.collection("disciplinasEstagio").doc(a.disc.id), { turmaIds: a.turmaIds }));
+    await batch.commit();
+    toast("Disciplinas importadas", "sucesso");
+  } catch (e){ toast(e.message, "erro"); }
+  finally { hideLoading(); }
+}
+
+function renderAdminDisciplinas(){
+  document.getElementById("conteudo").innerHTML = `
+    <div class="card">
+      <div class="secao-titulo">
+        <h2>Disciplinas com estágio</h2>
+        <div class="btn-group">
+          <button class="btn secundario" id="btn-importar-disciplinas">↻ Importar das turmas ativas</button>
+          <button class="btn sucesso" id="btn-nova-disciplina">+ Nova disciplina</button>
+        </div>
+      </div>
+      <div class="info-box">Só as disciplinas <b>abertas</b> aparecem na página pública e podem receber novas vagas. "Importar das turmas ativas" lê as turmas da Plataforma de Estágios, cria uma disciplina para cada nome de disciplina encontrado e já vincula as turmas.</div>
+      <div class="table-container" id="tabela-disciplinas"></div>
+    </div>`;
+  document.getElementById("btn-nova-disciplina").addEventListener("click", () => abrirModalDisciplina(null));
+  document.getElementById("btn-importar-disciplinas").addEventListener("click", importarDisciplinasDasTurmas);
+
+  refreshAtual = () => {
+    const el = document.getElementById("tabela-disciplinas");
+    if (!el) return;
+    const linhas = store.disciplinas.slice().sort((a, b) => (a.ativa === false) - (b.ativa === false) || porNome(a, b)).map(d => {
+      const ofs = store.ofertas.filter(o => o.disciplinaId === d.id);
+      const aberta = d.ativa !== false;
+      return `<tr>
+        <td><b>${escapeHtml(d.nome)}</b>${d.segmento ? `<br><span class="muted">${escapeHtml(d.segmento)}</span>` : ""}</td>
+        <td>${(d.turmaIds || []).length}</td>
+        <td>${alunosDaDisciplina(d).length}</td>
+        <td>${ofs.length}</td>
+        <td>${badge(aberta ? { label: "Aberta", cor: "#27ae60" } : { label: "Fechada", cor: "#95a5a6" })}</td>
+        <td class="btn-group">
+          <button class="btn pequeno btn-editar-disc" data-id="${d.id}">Editar</button>
+          <button class="btn secundario pequeno btn-toggle-disc" data-id="${d.id}">${aberta ? "Fechar" : "Abrir"}</button>
+          ${ofs.length === 0 ? `<button class="btn perigo pequeno btn-excluir-disc" data-id="${d.id}">Excluir</button>` : ""}
+        </td>
+      </tr>`;
+    }).join("");
+    el.innerHTML = `<table>
+      <thead><tr><th>Disciplina</th><th>Turmas</th><th>Estudantes</th><th>Ofertas</th><th>Situação</th><th>Ações</th></tr></thead>
+      <tbody>${linhas || `<tr><td colspan="6">Nenhuma disciplina cadastrada. Use "Importar das turmas ativas" para começar.</td></tr>`}</tbody></table>`;
+    el.querySelectorAll(".btn-editar-disc").forEach(b => b.addEventListener("click", () => abrirModalDisciplina(store.disciplinas.find(d => d.id === b.dataset.id))));
+    el.querySelectorAll(".btn-toggle-disc").forEach(b => b.addEventListener("click", async () => {
+      const d = store.disciplinas.find(x => x.id === b.dataset.id);
+      try { await db.collection("disciplinasEstagio").doc(d.id).update({ ativa: d.ativa === false }); }
+      catch (e){ toast(e.message, "erro"); }
+    }));
+    el.querySelectorAll(".btn-excluir-disc").forEach(b => b.addEventListener("click", async () => {
+      if (!confirm("Excluir esta disciplina?")) return;
+      try { await db.collection("disciplinasEstagio").doc(b.dataset.id).delete(); toast("Disciplina excluída", "sucesso"); }
+      catch (e){ toast(e.message, "erro"); }
+    }));
+  };
+  refreshAtual();
+}
+
+/* ---------- Exportação ---------- */
+function baixarPlanilha(linhas, nomeAba, arquivo){
+  if (!linhas.length) return toast("Nada para exportar", "erro");
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(linhas), nomeAba);
+  XLSX.writeFile(wb, arquivo);
+}
+function exportarParceiros(){
+  baixarPlanilha(store.parceiros.slice().sort(porNome).map(p => ({
+    "Tipo": (TIPOS_PARCEIRO[p.tipo] || {}).label || p.tipo,
+    "Nome": p.nome, "Status": (STATUS_PARCEIRO_INFO[p.status] || {}).label || p.status,
+    "Responsável": p.responsavelNome, "Cargo": p.cargo, "Escola (professora)": p.escolaAtuacao, "Turma (professora)": p.turmaAtuacao,
+    "INEP": p.codigoInep, "Rede": p.rede, "E-mail login": p.email, "E-mail contato": p.emailContato, "Telefone": p.telefone,
+    "Endereço": p.endereco, "Bairro": p.bairro, "Cidade": p.cidade, "UF": p.uf, "CEP": p.cep,
+    "Segmentos": (p.segmentos || []).join("; "), "Turnos": (p.turnos || []).join("; "), "Observações": p.observacoes,
+    "Cadastrado em": fmtData(p.criadoEm)
+  })), "Parceiros", "parceiros-estagio.xlsx");
+}
+function exportarVagas(){
+  const linhas = [];
+  store.ofertas.slice().sort((a, b) => (a.disciplinaNome || "").localeCompare(b.disciplinaNome || "")).forEach(o => {
+    const p = parceiroDe(o.parceiroUid) || {};
+    const base = {
+      "Disciplina": o.disciplinaNome, "Parceiro": p.nome || o.parceiroNome, "Tipo": (TIPOS_PARCEIRO[p.tipo] || {}).label || "",
+      "Status do parceiro": (STATUS_PARCEIRO_INFO[p.status] || {}).label || "", "Unidade": o.unidade, "Cidade": p.cidade || o.cidade,
+      "Turno": o.turno, "Segmento": o.segmento, "Início": fmtDataSimples(o.periodoInicio), "Fim": fmtDataSimples(o.periodoFim),
+      "Supervisor(a)": o.supervisorNome, "Vagas": Number(o.vagas) || 0, "Situação da vaga": (STATUS_OFERTA_INFO[o.status] || {}).label || o.status,
+      "Telefone": p.telefone, "E-mail contato": p.emailContato || p.email
+    };
+    const alocs = alocacoesDaOferta(o.id);
+    if (!alocs.length) linhas.push({ ...base, "Estagiário": "", "E-mail estagiário": "" });
+    alocs.forEach(a => linhas.push({ ...base, "Estagiário": a.alunoNome, "E-mail estagiário": a.alunoEmail }));
+  });
+  baixarPlanilha(linhas, "Vagas", "vagas-estagio.xlsx");
+}
+
+/* ---------- Configuração ---------- */
+function renderAdminConfig(){
+  document.getElementById("conteudo").innerHTML = `
+    <div class="card">
+      <h2>Configuração</h2>
+      <div class="aviso">Este portal usa o <b>mesmo projeto Firebase</b> da Plataforma de Estágios. Antes de divulgar o link:</div>
+      <ol>
+        <li>No Console Firebase → <b>Authentication → Sign-in method</b>, confirme que <b>Google</b> e <b>E-mail/senha</b> estão ativados (parceiros externos não têm conta Microsoft da instituição).</li>
+        <li>Em <b>Authentication → Settings → Authorized domains</b>, confirme que o domínio onde este arquivo está publicado aparece na lista.</li>
+        <li>Em <b>Firestore Database → Regras</b>, substitua as regras pelo texto abaixo e publique. Elas mantêm tudo o que a Plataforma de Estágios já fazia, acrescentam as coleções do portal e impedem que contas externas vejam dados de alunos e professores.</li>
+        <li>Em "Disciplinas", clique em <b>Importar das turmas ativas</b> (ou cadastre manualmente) e revise quais ficam abertas.</li>
+      </ol>
+      <textarea class="codigo-copia" readonly>${escapeHtml(regrasFirestoreTexto())}</textarea>
+      <p class="muted">Se mudar a lista de administradores iniciais (<code>ADMIN_EMAILS</code>), atualize-a nos dois arquivos HTML e no trecho <code>emailAdminInicial()</code> das regras.</p>
+    </div>`;
+}
+
+// IMPORTANTE: manter idêntico a regrasFirestoreTexto() em plataforma-estagios.html
+// (o Firestore só tem um conjunto de regras por projeto).
+function regrasFirestoreTexto(){
+  return `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Funções comuns ----------
+    function logado() { return request.auth != null; }
+    function caminhoUsuario() { return /databases/$(database)/documents/users/$(request.auth.uid); }
+    // "membro" = aluno, professor ou admin da Plataforma de Estágios (tem documento em /users)
+    function souMembro() { return logado() && exists(caminhoUsuario()); }
+    function meuUsuario() { return get(caminhoUsuario()).data; }
+    function estouAtivo() { return souMembro() && meuUsuario().get('status', 'ativo') != 'bloqueado'; }
+    function souAdmin() { return estouAtivo() && meuUsuario().role == 'admin'; }
+    function souProfessor() { return estouAtivo() && meuUsuario().role == 'professor'; }
+    function meuEmail() { return request.auth.token.email.lower(); }
+    function emailAdminInicial() { return logado() && meuEmail() in ['calebemrnos@gmail.com']; }
+    function viaMicrosoft() { return request.auth.token.firebase.sign_in_provider == 'microsoft.com'; }
+    function caminhoConvite() { return /databases/$(database)/documents/invites/$(meuEmail()); }
+    function papelConvidado() { return get(caminhoConvite()).data.get('role', 'aluno'); }
+    function caminhoParceiro() { return /databases/$(database)/documents/parceiros/$(request.auth.uid); }
+    function souParceiroAtivo() {
+      return logado() && exists(caminhoParceiro()) && get(caminhoParceiro()).data.status in ['pendente', 'aprovado'];
+    }
+
+    // ---------- Plataforma de Estágios ----------
+    match /users/{uid} {
+      allow read: if souMembro() || (logado() && request.auth.uid == uid);
+      // primeiro login: só cria com o papel que tem direito
+      allow create: if logado() && request.auth.uid == uid
+        && request.resource.data.email == meuEmail()
+        && (
+          emailAdminInicial()
+          || (exists(caminhoConvite()) && papelConvidado() == request.resource.data.role
+              && (viaMicrosoft() || request.resource.data.role == 'admin'))
+          || (viaMicrosoft() && !exists(caminhoConvite()) && request.resource.data.role == 'aluno')
+        );
+      // a própria pessoa não pode mudar o próprio papel nem se desbloquear
+      allow update: if souAdmin() || (logado() && request.auth.uid == uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.get('status', 'ativo') == resource.data.get('status', 'ativo'));
+      allow delete: if souAdmin();
+    }
+
+    match /invites/{email} {
+      allow read: if souMembro() || (logado() && meuEmail() == email);
+      allow write: if souAdmin();
+    }
+
+    match /turmas/{turmaId} {
+      allow read: if estouAtivo();
+      allow create, update, delete: if souAdmin();
+    }
+
+    match /matriculas/{matriculaId} {
+      allow read: if estouAtivo();
+      allow create: if estouAtivo() && request.resource.data.alunoEmail == request.auth.token.email;
+      allow update: if estouAtivo() && (souProfessor() || souAdmin() || resource.data.alunoEmail == request.auth.token.email);
+    }
+
+    match /documentos/{documentoId} {
+      allow read: if estouAtivo();
+      allow create, update: if estouAtivo();
+      allow delete: if souProfessor() || souAdmin();
+    }
+
+    // ---------- Portal de Campos de Estágio ----------
+
+    // lista pública de disciplinas (aparece antes do login)
+    match /disciplinasEstagio/{id} {
+      allow read: if true;
+      allow write: if souAdmin();
+    }
+
+    // um documento por conta (id = uid); só a coordenação muda o status
+    match /parceiros/{uid} {
+      allow read: if souAdmin() || (logado() && request.auth.uid == uid);
+      allow create: if logado() && request.auth.uid == uid
+        && request.resource.data.status == 'pendente'
+        && request.resource.data.email == meuEmail();
+      allow update: if souAdmin() || (logado() && request.auth.uid == uid
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.get('observacaoAdmin', '') == resource.data.get('observacaoAdmin', ''));
+      allow delete: if souAdmin();
+    }
+
+    match /ofertasVagas/{id} {
+      allow read: if souAdmin() || (logado() && resource.data.parceiroUid == request.auth.uid);
+      allow create: if souParceiroAtivo() && request.resource.data.parceiroUid == request.auth.uid;
+      allow update: if souAdmin() || (souParceiroAtivo()
+        && resource.data.parceiroUid == request.auth.uid
+        && request.resource.data.parceiroUid == request.auth.uid);
+      allow delete: if souAdmin() || (souParceiroAtivo() && resource.data.parceiroUid == request.auth.uid);
+    }
+
+    // encaminhamento de estudantes: só a coordenação cria; o parceiro só vê os seus
+    match /alocacoesEstagio/{id} {
+      allow read: if souAdmin() || (logado() && resource.data.parceiroUid == request.auth.uid);
+      allow write: if souAdmin();
+    }
+  }
+}`;
+}
+
+/* ======================================================================
+   7. INICIALIZAÇÃO
+   ====================================================================== */
+
+document.addEventListener("DOMContentLoaded", () => {
+  const on = (id, fn) => document.getElementById(id).addEventListener("click", fn);
+  on("btn-login-google", entrarGoogle);
+  on("btn-login-google-2", entrarGoogle);
+  on("btn-entrar-senha", entrarComSenha);
+  on("btn-criar-conta", criarConta);
+  on("btn-esqueci-senha", esqueciSenha);
+  on("btn-ir-criar-conta", () => {
+    document.getElementById("bloco-entrar").classList.add("hidden");
+    document.getElementById("bloco-criar-conta").classList.remove("hidden");
+  });
+  on("btn-ir-entrar", () => {
+    document.getElementById("bloco-criar-conta").classList.add("hidden");
+    document.getElementById("bloco-entrar").classList.remove("hidden");
+  });
+  on("btn-logout", () => auth.signOut());
+  document.getElementById("input-senha-login").addEventListener("keydown", e => { if (e.key === "Enter") entrarComSenha(); });
+  initFirebase();
+});
+</script>
+</body>
+</html>
